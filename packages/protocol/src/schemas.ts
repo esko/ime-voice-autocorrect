@@ -23,6 +23,7 @@ export const sharedSettingsSchema = z
     showPartialTranscript: z.boolean().optional(),
     personalDictionary: z.array(z.string().min(1)).optional(),
     ignoreList: z.array(z.string().min(1)).optional(),
+    technicalDictionary: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

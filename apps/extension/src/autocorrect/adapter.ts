@@ -15,6 +15,7 @@ export interface ImeTextAdapter {
 
 export interface AutocorrectWordLists {
   personalDictionary?: readonly string[];
+  technicalDictionary?: readonly string[];
   ignoreList?: readonly string[];
 }
 
@@ -40,9 +41,13 @@ export class AutocorrectImeAdapter {
   }
 
   updateWordLists(lists: AutocorrectWordLists): void {
+    const personalDictionary = [
+      ...(lists.personalDictionary ?? []),
+      ...(lists.technicalDictionary ?? []),
+    ];
     this.engine = createAutocorrectEngine({
       dictionary: this.dictionary,
-      personalDictionary: lists.personalDictionary ?? [],
+      personalDictionary,
       ignoreList: lists.ignoreList ?? [],
     });
   }

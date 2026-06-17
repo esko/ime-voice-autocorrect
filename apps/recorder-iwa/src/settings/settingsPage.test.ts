@@ -17,6 +17,7 @@ describe("settingsPage", () => {
       showPartial: { checked: true } as HTMLInputElement,
       activationMode: { value: "toggle" } as HTMLSelectElement,
       personalDictionary: { value: "" } as HTMLTextAreaElement,
+      technicalDictionary: { value: "" } as HTMLTextAreaElement,
       ignoreList: { value: "" } as HTMLTextAreaElement,
       saveStatus: { textContent: "" } as HTMLElement,
     };
@@ -42,6 +43,7 @@ describe("settingsPage", () => {
       showPartial: { checked: false } as HTMLInputElement,
       activationMode: { value: "push-to-talk" } as HTMLSelectElement,
       personalDictionary: { value: "teh, custom" } as HTMLTextAreaElement,
+      technicalDictionary: { value: "symspell" } as HTMLTextAreaElement,
       ignoreList: { value: "chromr" } as HTMLTextAreaElement,
       saveStatus: { textContent: "" } as HTMLElement,
     });
@@ -52,6 +54,7 @@ describe("settingsPage", () => {
       elevenLabsNoiseGate: true,
       showPartialTranscript: false,
       personalDictionary: ["teh", "custom"],
+      technicalDictionary: ["symspell"],
       ignoreList: ["chromr"],
     });
   });

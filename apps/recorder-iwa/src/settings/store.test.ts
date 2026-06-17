@@ -26,6 +26,7 @@ describe("SettingsStore", () => {
       showPartialTranscript: true,
       personalDictionary: [],
       ignoreList: [],
+      technicalDictionary: [],
     });
   });
 });

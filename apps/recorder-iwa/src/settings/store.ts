@@ -8,6 +8,7 @@ export interface RecorderSettings {
   elevenLabsInputDeviceId: string;
   personalDictionary: string[];
   ignoreList: string[];
+  technicalDictionary: string[];
 }
 
 export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
@@ -20,6 +21,7 @@ export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
   elevenLabsInputDeviceId: "",
   personalDictionary: [],
   ignoreList: [],
+  technicalDictionary: [],
 };
 
 export interface SettingsStorage {
@@ -52,6 +54,7 @@ export class SettingsStore {
       showPartialTranscript: settings.showPartialTranscript,
       personalDictionary: settings.personalDictionary,
       ignoreList: settings.ignoreList,
+      technicalDictionary: settings.technicalDictionary,
     };
   }
 }

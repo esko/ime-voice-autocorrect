@@ -45,6 +45,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
         }
         autocorrect.updateWordLists({
           personalDictionary: message.settings.personalDictionary,
+          technicalDictionary: message.settings.technicalDictionary,
           ignoreList: message.settings.ignoreList,
         });
       }
@@ -106,9 +107,10 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       activeContextType = undefined;
     },
     async onCharacterTyped(contextId: number, character: string) {
-      const buffer = (textBuffers.get(contextId) ?? "") + character;
+      const prior = textBuffers.get(contextId) ?? "";
+      const buffer = prior + character;
       textBuffers.set(contextId, buffer);
-      await autocorrect.onCharacterTyped(contextId, buffer, character);
+      await autocorrect.onCharacterTyped(contextId, prior, character);
       if (character === " ") {
         textBuffers.set(contextId, "");
       }
