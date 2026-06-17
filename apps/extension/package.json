@@ -1,0 +1,22 @@
+{
+  "name": "@input-assist/extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@input-assist/dictation-core": "workspace:*",
+    "@input-assist/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.304",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.6",
+    "vitest": "^2.1.8"
+  }
+}
