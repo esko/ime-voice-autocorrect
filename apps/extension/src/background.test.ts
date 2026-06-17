@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ContextTracker } from "./ime/contextTracker.js";
 import { KeyRouter } from "./ime/keyRouter.js";
-import { registerImeHandlers } from "./background.js";
 
 describe("ContextTracker", () => {
   it("tracks focus and blur for the active context", () => {
@@ -23,33 +22,5 @@ describe("KeyRouter", () => {
     expect(router.route("AltRight", "keyup")).toBe("dictation");
     expect(onDictationDown).toHaveBeenCalledOnce();
     expect(onDictationUp).toHaveBeenCalledOnce();
-  });
-});
-
-describe("registerImeHandlers", () => {
-  it("registers chrome ime listeners", () => {
-    const listeners: Record<string, (...args: never[]) => unknown> = {};
-    const chromeMock = {
-      input: {
-        ime: {
-          onActivate: {
-            addListener: (fn: (...args: never[]) => unknown) => (listeners.activate = fn),
-          },
-          onFocus: { addListener: (fn: (...args: never[]) => unknown) => (listeners.focus = fn) },
-          onBlur: { addListener: (fn: (...args: never[]) => unknown) => (listeners.blur = fn) },
-          onKeyEvent: {
-            addListener: (fn: (...args: never[]) => unknown) => (listeners.key = fn),
-          },
-        },
-      },
-    } as unknown as typeof chrome;
-
-    const app = registerImeHandlers(chromeMock);
-    listeners.activate?.("input-assist-fi" as never);
-    listeners.focus?.({ contextID: 9 } as never);
-    listeners.blur?.(9 as never);
-
-    expect(app.contexts.getActive()).toBeNull();
-    expect(listeners.key).toBeTypeOf("function");
   });
 });

@@ -1,17 +1,16 @@
 import { ContextTracker } from "./ime/contextTracker.js";
-import { KeyRouter } from "./ime/keyRouter.js";
+import { createInputAssistApp } from "./ime/inputAssistApp.js";
+import type { BridgePort } from "./bridge/server.js";
 
-export function createImeApp() {
-  const contexts = new ContextTracker();
-  const keyRouter = new KeyRouter();
-
-  return { contexts, keyRouter };
-}
-
-export function registerImeHandlers(
+export function registerInputAssist(
   chromeApi: typeof chrome,
-  app = createImeApp(),
-): typeof app {
+  options: {
+    allowedOrigin: string;
+    launchRecorder: () => Promise<void>;
+    imeAdapter: Parameters<typeof createInputAssistApp>[0]["imeAdapter"];
+  },
+) {
+  const app = createInputAssistApp(options);
   let activeEngineId = "input-assist-us";
 
   chromeApi.input.ime.onActivate.addListener((engineId) => {
@@ -19,24 +18,37 @@ export function registerImeHandlers(
   });
 
   chromeApi.input.ime.onFocus.addListener((context) => {
-    app.contexts.onFocus(activeEngineId, context);
+    app.onFocus(activeEngineId, context);
   });
 
   chromeApi.input.ime.onBlur.addListener((contextId) => {
-    app.contexts.onBlur(contextId);
+    app.onBlur(contextId);
   });
 
-  chromeApi.input.ime.onKeyEvent.addListener((engineId, keyData) => {
-    const route = app.keyRouter.route(
-      keyData.key ?? "",
-      keyData.type === "keyup" ? "keyup" : "keydown",
-    );
+  chromeApi.input.ime.onKeyEvent.addListener(async (engineId, keyData) => {
+    const key = keyData.key ?? "";
+    const type = keyData.type === "keyup" ? "keyup" : "keydown";
+    const route = app.keyRouter.route(key, type);
+
+    if (route === "pass-through" && type === "keydown" && key.length === 1) {
+      const active = app.contexts.getActive();
+      if (active) {
+        await app.onCharacterTyped(active.contextId, key);
+      }
+    }
+
     return route === "pass-through";
   });
 
   return app;
 }
 
-if (typeof chrome !== "undefined" && chrome.input?.ime) {
-  registerImeHandlers(chrome);
+export function connectExternalRecorder(
+  app: ReturnType<typeof createInputAssistApp>,
+  port: BridgePort,
+  senderUrl: string,
+): boolean {
+  return app.bridge.connect(port, senderUrl);
 }
+
+export { ContextTracker };

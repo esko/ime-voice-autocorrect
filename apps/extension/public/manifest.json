@@ -4,6 +4,9 @@
   "version": "0.0.1",
   "description": "Input Assist US and Finnish with English autocorrect and dictation",
   "permissions": ["input", "storage"],
+  "externally_connectable": {
+    "matches": ["isolated-app://*/*"]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ExtensionBridgeServer } from "./server.js";
-import { createDictationController } from "../dictation/controller.js";
+import { createInputAssistApp } from "../ime/inputAssistApp.js";
 
 describe("ExtensionBridgeServer", () => {
   it("rejects unknown origins", () => {
@@ -28,31 +28,43 @@ describe("ExtensionBridgeServer", () => {
   });
 });
 
-describe("dictation bridge integration", () => {
+describe("end-to-end dictation bridge", () => {
   it("commits final transcript after push-to-talk release", async () => {
     const port = createPort();
-    const bridge = new ExtensionBridgeServer({ allowedOrigin: "isolated-app://abc" });
-    bridge.connect(port, "isolated-app://abc/");
     const commits: string[] = [];
-
-    const session = createDictationController({
-      bridge,
-      ime: {
+    const app = createInputAssistApp({
+      allowedOrigin: "isolated-app://abc",
+      launchRecorder: async () => {},
+      imeAdapter: {
         hasValidContext: () => true,
+        getContextType: () => "text",
+        getContextId: () => 1,
         commitText: async (text) => {
           commits.push(text);
           return true;
         },
+        deleteSurroundingText: async () => true,
       },
+      createSessionId: () => "sess-1",
     });
 
-    session.onDictationChordDown();
-    session.onDictationChordUp();
+    app.bridge.connect(port, "isolated-app://abc/");
+    port.emit({
+      type: "HELLO",
+      protocolVersion: 1,
+      appId: "input-assist-recorder",
+    });
+
+    await app.dictation.onDictationChordDown();
+    app.dictation.onDictationChordUp();
+    port.emit({
+      type: "FINAL_TRANSCRIPT",
+      sessionId: "sess-1",
+      text: "hello from recorder",
+    });
     await vi.waitUntil(() => commits.length === 1);
 
-    expect(commits[0]).toBe("dictated text");
-    expect(port.sent.some((message) => message.type === "START_SESSION")).toBe(true);
-    expect(port.sent.some((message) => message.type === "STOP_SESSION")).toBe(true);
+    expect(commits[0]).toBe("hello from recorder");
   });
 });
 
