@@ -1,18 +1,35 @@
-import type { RecorderLauncher } from "../recorder/launcher.js";
+import type { RecorderLauncher } from "./launcher.js";
+import { buildRecorderLaunchUrl } from "./launchUrl.js";
 
-export interface ChromeRuntime {
-  sendMessage(extensionId: string, message: unknown): Promise<unknown>;
+export interface ChromeTabsApi {
+  create(properties: { url: string; active: boolean }): Promise<unknown>;
 }
 
+export interface RecorderLaunchStorage {
+  get(keys: string[]): Promise<Record<string, unknown>>;
+}
+
+const RECORDER_ORIGIN_KEY = "recorderBaseOrigin";
+
 export function createChromeOsRecorderLauncher(options: {
-  recorderExtensionId: string;
-  runtime: ChromeRuntime;
+  extensionId: string;
+  tabs: ChromeTabsApi;
+  storage: RecorderLaunchStorage;
 }): RecorderLauncher {
   return {
     async launch() {
-      await options.runtime.sendMessage(options.recorderExtensionId, {
-        type: "LAUNCH_RECORDER",
+      const stored = await options.storage.get([RECORDER_ORIGIN_KEY]);
+      const baseOrigin = stored[RECORDER_ORIGIN_KEY];
+      if (typeof baseOrigin !== "string" || !baseOrigin) {
+        return;
+      }
+
+      await options.tabs.create({
+        url: buildRecorderLaunchUrl(baseOrigin, options.extensionId),
+        active: false,
       });
     },
   };
 }
+
+export { RECORDER_ORIGIN_KEY };

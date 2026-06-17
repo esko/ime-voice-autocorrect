@@ -50,6 +50,9 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       }
       dictationHolder.service?.handleRecorderMessage(message);
     },
+    onRecorderDisconnect: () => {
+      dictationHolder.service?.onRecorderDisconnected();
+    },
   });
 
   const launcher = new PendingRecorderLauncher(options.launchRecorder);

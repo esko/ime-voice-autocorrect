@@ -26,6 +26,18 @@ describe("ExtensionBridgeServer", () => {
       extensionState: { recorderConnected: true },
     });
   });
+
+  it("notifies when the recorder disconnects", () => {
+    const onRecorderDisconnect = vi.fn();
+    const port = createPort();
+    const server = new ExtensionBridgeServer({
+      allowedOrigin: "isolated-app://abc",
+      onRecorderDisconnect,
+    });
+    server.connect(port, "isolated-app://abc/");
+    port.disconnect();
+    expect(onRecorderDisconnect).toHaveBeenCalledOnce();
+  });
 });
 
 describe("end-to-end dictation bridge", () => {
@@ -70,6 +82,7 @@ describe("end-to-end dictation bridge", () => {
 
 function createPort() {
   const listeners: Array<(message: unknown) => void> = [];
+  const disconnectListeners: Array<() => void> = [];
   const sent: Array<{ type: string }> = [];
   return {
     sent,
@@ -82,9 +95,16 @@ function createPort() {
       },
       removeListener: vi.fn(),
     },
-    onDisconnect: { addListener: vi.fn() },
+    onDisconnect: {
+      addListener(listener: () => void) {
+        disconnectListeners.push(listener);
+      },
+    },
     emit(message: unknown) {
       listeners.forEach((listener) => listener(message));
+    },
+    disconnect() {
+      disconnectListeners.forEach((listener) => listener());
     },
   };
 }

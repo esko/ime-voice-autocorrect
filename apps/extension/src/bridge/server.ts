@@ -21,17 +21,20 @@ export interface BridgePort {
 export interface ExtensionBridgeServerOptions {
   allowedOrigin: string;
   onRecorderMessage?: (message: RecorderToExtensionMessage) => void;
+  onRecorderDisconnect?: () => void;
 }
 
 export class ExtensionBridgeServer {
   private readonly allowedOrigin: string;
   private readonly onRecorderMessage: (message: RecorderToExtensionMessage) => void;
+  private readonly onRecorderDisconnect: () => void;
   private port: BridgePort | null = null;
   private activeSessionId: string | null = null;
 
   constructor(options: ExtensionBridgeServerOptions) {
     this.allowedOrigin = options.allowedOrigin;
     this.onRecorderMessage = options.onRecorderMessage ?? (() => {});
+    this.onRecorderDisconnect = options.onRecorderDisconnect ?? (() => {});
   }
 
   connect(port: BridgePort, senderUrl: string): boolean {
@@ -57,6 +60,7 @@ export class ExtensionBridgeServer {
     });
     port.onDisconnect.addListener(() => {
       this.port = null;
+      this.onRecorderDisconnect();
     });
     return true;
   }

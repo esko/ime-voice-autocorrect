@@ -44,6 +44,7 @@ Record the exact flags used in `docs/platform-notes.md`.
 
 - Put the IWA origin into the extension manifest `externally_connectable.matches`.
 - Set the extension ID in the IWA config.
+- Set `recorderBaseOrigin` in extension `chrome.storage.local` to the installed IWA origin (e.g. `isolated-app://…`). Dictation auto-launch opens `{origin}/recorder?extensionId={id}` in a background tab.
 - Configure ASR API key in the IWA settings page.
 - Grant microphone permission.
 - Select `Input Assist US` or `Input Assist Finnish` as the active ChromeOS input method.

@@ -20,8 +20,9 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
   const settingsCache = new ExtensionSettingsCache(chromeApi.storage.local);
 
   const launcher = createChromeOsRecorderLauncher({
-    recorderExtensionId: chromeApi.runtime.id,
-    runtime: chromeApi.runtime,
+    extensionId: chromeApi.runtime.id,
+    tabs: chromeApi.tabs,
+    storage: chromeApi.storage.local,
   });
 
   const app = registerInputAssist(chromeApi, {

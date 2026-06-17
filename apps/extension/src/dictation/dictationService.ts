@@ -73,4 +73,10 @@ export class DictationService {
   onContextLost(): void {
     this.session.onContextLost();
   }
+
+  onRecorderDisconnected(): void {
+    if (this.session.isRunning()) {
+      this.session.onEscape();
+    }
+  }
 }
