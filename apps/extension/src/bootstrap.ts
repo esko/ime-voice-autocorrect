@@ -32,6 +32,8 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     settingsCache,
   });
 
+  void app.hydrateSettingsFromCache();
+
   const heartbeat = new BridgeHeartbeat(app.bridge);
   heartbeat.start();
 

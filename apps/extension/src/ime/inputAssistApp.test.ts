@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createInputAssistApp } from "./inputAssistApp.js";
+import { ExtensionSettingsCache } from "../storage/settingsCache.js";
 
 describe("createInputAssistApp", () => {
   it("auto-launches recorder before dictation when bridge is disconnected", async () => {
@@ -21,6 +22,47 @@ describe("createInputAssistApp", () => {
     await app.dictation.onDictationChordDown();
 
     expect(launchRecorder).toHaveBeenCalledOnce();
+  });
+
+  it("applies cached shared settings to autocorrect on startup", async () => {
+    const memory: Record<string, unknown> = {
+      sharedSettings: {
+        personalDictionary: ["teh"],
+        ignoreList: [],
+        technicalDictionary: [],
+      },
+    };
+    const cache = new ExtensionSettingsCache({
+      get: async (keys) =>
+        Object.fromEntries(keys.map((key) => [key, memory[key] ?? null])),
+      set: async (items) => {
+        Object.assign(memory, items);
+      },
+    });
+    const commits: string[] = [];
+    const app = createInputAssistApp({
+      allowedOrigin: "isolated-app://abc",
+      launchRecorder: async () => {},
+      settingsCache: cache,
+      imeAdapter: {
+        hasValidContext: () => true,
+        getContextType: () => "text",
+        getContextId: () => 1,
+        commitText: async (text) => {
+          commits.push(text);
+          return true;
+        },
+        deleteSurroundingText: async () => true,
+      },
+    });
+
+    await app.hydrateSettingsFromCache();
+    app.onFocus("input-assist-us", { contextID: 1, type: "text" } as chrome.input.ime.InputContext);
+    for (const key of ["t", "e", "h", " "]) {
+      await app.onCharacterTyped(1, key);
+    }
+
+    expect(commits).toEqual([]);
   });
 
   it("blocks dictation in password fields", async () => {

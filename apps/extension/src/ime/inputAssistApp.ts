@@ -92,6 +92,20 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     keyRouter,
     autocorrect,
     textBuffers,
+    async hydrateSettingsFromCache() {
+      if (!options.settingsCache) {
+        return;
+      }
+      const cached = await options.settingsCache.load();
+      if (!cached) {
+        return;
+      }
+      autocorrect.updateWordLists({
+        personalDictionary: cached.personalDictionary,
+        technicalDictionary: cached.technicalDictionary,
+        ignoreList: cached.ignoreList,
+      });
+    },
     setActiveContextType(type: string | undefined) {
       activeContextType = type;
     },
