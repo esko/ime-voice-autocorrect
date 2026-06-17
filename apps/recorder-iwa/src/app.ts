@@ -4,6 +4,7 @@ import type { RecorderBridgePort } from "./bridge/server.js";
 import { RecorderBridgeServer } from "./bridge/server.js";
 import { RecorderSessionController } from "./session/recorderSession.js";
 import { SettingsStore, DEFAULT_RECORDER_SETTINGS } from "./settings/store.js";
+import { RecorderUiController } from "./ui/recorderUi.js";
 
 export function createRecorderApp(options: {
   extensionId: string;
@@ -12,14 +13,17 @@ export function createRecorderApp(options: {
   storage: ConstructorParameters<typeof SettingsStore>[0];
 }) {
   const settings = new SettingsStore(options.storage);
+  const ui = new RecorderUiController();
   let sessionController: RecorderSessionController | null = null;
   let bridgeServer: RecorderBridgeServer;
 
   bridgeServer = new RecorderBridgeServer({
     onExtensionMessage: async (message) => {
       if (message.type === "START_SESSION") {
+        ui.setListening();
         sessionController = new RecorderSessionController(options.socketFactory, {
           onPartial: (text) => {
+            ui.setPartial(text);
             bridgeServer.send({
               type: "PARTIAL_TRANSCRIPT",
               sessionId: message.sessionId,
@@ -34,6 +38,7 @@ export function createRecorderApp(options: {
             });
           },
           onError: (errorMessage) => {
+            ui.setError(errorMessage);
             bridgeServer.send({
               type: "SESSION_ERROR",
               sessionId: message.sessionId,
@@ -48,6 +53,7 @@ export function createRecorderApp(options: {
 
       if (message.type === "STOP_SESSION" && sessionController) {
         sessionController.stopSession();
+        ui.setIdle();
         bridgeServer.send({
           type: "SESSION_CLOSED",
           sessionId: message.sessionId,
@@ -59,6 +65,7 @@ export function createRecorderApp(options: {
       if (message.type === "CANCEL_SESSION") {
         sessionController?.cancelSession();
         sessionController = null;
+        ui.setIdle();
         bridgeServer.send({
           type: "SESSION_CLOSED",
           sessionId: message.sessionId,
@@ -90,6 +97,7 @@ export function createRecorderApp(options: {
 
   return {
     settings,
+    ui,
     bridgeClient,
     bridgeServer,
     getSessionController: () => sessionController,

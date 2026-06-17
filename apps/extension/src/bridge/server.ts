@@ -45,6 +45,9 @@ export class ExtensionBridgeServer {
       if (parsed.type === "HELLO") {
         this.send({ type: "HELLO_ACK", protocolVersion: 1, extensionState: { recorderConnected: true } });
       }
+      if (parsed.type === "PONG") {
+        return;
+      }
       if (isSessionScopedRecorderMessage(parsed) && this.activeSessionId) {
         if (!isSessionIdMatch(parsed, this.activeSessionId)) {
           return;
@@ -74,6 +77,10 @@ export class ExtensionBridgeServer {
 
   isConnected(): boolean {
     return this.port !== null;
+  }
+
+  ping(id: string): void {
+    this.send({ type: "PING", id });
   }
 
   private send(message: ExtensionToRecorderMessage): void {

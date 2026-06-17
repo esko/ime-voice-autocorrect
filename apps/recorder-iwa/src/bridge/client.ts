@@ -43,6 +43,9 @@ export class RecorderBridgeClient {
       if (parsed.type === "HELLO_ACK") {
         this.onReady();
       }
+      if (parsed.type === "PING") {
+        this.port?.postMessage({ type: "PONG", id: parsed.id });
+      }
     });
   }
 
