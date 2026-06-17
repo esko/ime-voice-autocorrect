@@ -12,4 +12,9 @@ describe("buildRealtimeWebSocketUrl", () => {
     const fiUrl = new URL(buildRealtimeWebSocketUrl("token-2", "fi"));
     expect(fiUrl.searchParams.get("language_code")).toBe("fi");
   });
+
+  it("appends personal dictionary terms as repeated keyterms params", () => {
+    const url = new URL(buildRealtimeWebSocketUrl("token-3", "auto", ["Input Assist", "Symspell"]));
+    expect(url.searchParams.getAll("keyterms")).toEqual(["Input Assist", "Symspell"]);
+  });
 });

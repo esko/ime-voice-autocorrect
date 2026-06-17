@@ -1,6 +1,7 @@
 import type { DictationSessionConfig } from "@input-assist/protocol";
 import { AudioPipeline, SAMPLE_RATE } from "../audio/audioPipeline.js";
 import type { RealtimeSocketFactory } from "../session/recorderSession.js";
+import { appendKeyterms, collectAsrKeyterms } from "./keyterms.js";
 import { fetchElevenLabsRealtimeToken } from "./elevenLabsToken.js";
 import { RealtimeSocket } from "./realtimeSocket.js";
 
@@ -18,7 +19,11 @@ export function languageHintToCode(hint: LanguageHint): string | undefined {
   return undefined;
 }
 
-export function buildRealtimeWebSocketUrl(token: string, languageHint: LanguageHint): string {
+export function buildRealtimeWebSocketUrl(
+  token: string,
+  languageHint: LanguageHint,
+  keyterms: readonly string[] = [],
+): string {
   const params = new URLSearchParams({
     token,
     encoding: "pcm_s16le",
@@ -29,11 +34,14 @@ export function buildRealtimeWebSocketUrl(token: string, languageHint: LanguageH
   if (languageCode) {
     params.set("language_code", languageCode);
   }
+  appendKeyterms(params, keyterms);
   return `${REALTIME_WS_URL}?${params.toString()}`;
 }
 
 export function createRealtimeSocketFactory(options: {
   getApiKey: () => string | null;
+  getPersonalDictionary?: () => readonly string[];
+  getTechnicalDictionary?: () => readonly string[];
   createWebSocket?: (url: string) => WebSocket;
 }): RealtimeSocketFactory {
   return (handlers, config) =>
@@ -47,6 +55,11 @@ export function createRealtimeSocketFactory(options: {
         return fetchElevenLabsRealtimeToken(apiKey);
       },
       getLanguageHint: () => config.languageHint,
+      getKeyterms: () =>
+        collectAsrKeyterms(
+          options.getPersonalDictionary?.() ?? [],
+          options.getTechnicalDictionary?.() ?? [],
+        ),
       createWebSocket: (url) => options.createWebSocket?.(url) ?? new WebSocket(url),
     });
 }

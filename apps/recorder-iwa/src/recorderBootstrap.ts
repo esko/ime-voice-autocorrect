@@ -19,6 +19,8 @@ export function bootstrapRecorder(extensionId: string): ReturnType<typeof create
     audioPipelineFactory: createDefaultAudioPipelineFactory(),
     socketFactory: createRealtimeSocketFactory({
       getApiKey: () => settings.load().elevenLabsApiKey || null,
+      getPersonalDictionary: () => settings.load().personalDictionary,
+      getTechnicalDictionary: () => settings.load().technicalDictionary,
     }),
   });
 

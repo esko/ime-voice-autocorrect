@@ -18,6 +18,7 @@ export interface RealtimeSocketOptions {
   createWebSocket: (url: string) => WebSocketLike;
   fetchToken: () => Promise<string>;
   getLanguageHint: () => LanguageHint;
+  getKeyterms?: () => readonly string[];
   handlers: RealtimeSocketHandlers;
   setTimer?: typeof setTimeout;
   clearTimer?: typeof clearTimeout;
@@ -44,6 +45,7 @@ export class RealtimeSocket {
   private readonly createWebSocket: RealtimeSocketOptions["createWebSocket"];
   private readonly fetchToken: RealtimeSocketOptions["fetchToken"];
   private readonly getLanguageHint: RealtimeSocketOptions["getLanguageHint"];
+  private readonly getKeyterms: () => readonly string[];
   private readonly handlers: RealtimeSocketHandlers;
   private readonly setTimer: typeof setTimeout;
   private readonly clearTimer: typeof clearTimeout;
@@ -58,6 +60,7 @@ export class RealtimeSocket {
     this.createWebSocket = options.createWebSocket;
     this.fetchToken = options.fetchToken;
     this.getLanguageHint = options.getLanguageHint;
+    this.getKeyterms = options.getKeyterms ?? (() => []);
     this.handlers = options.handlers;
     this.setTimer = options.setTimer ?? setTimeout;
     this.clearTimer = options.clearTimer ?? clearTimeout;
@@ -70,7 +73,7 @@ export class RealtimeSocket {
     }
 
     const token = await this.fetchToken();
-    const url = buildRealtimeWebSocketUrl(token, this.getLanguageHint());
+    const url = buildRealtimeWebSocketUrl(token, this.getLanguageHint(), this.getKeyterms());
     await this.openSocket(url);
   }
 
