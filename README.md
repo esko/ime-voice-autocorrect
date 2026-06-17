@@ -65,4 +65,14 @@ Do **not** copy the Tabby injection layer. Replace terminal delivery with Chrome
 5. Read ADRs in `docs/adr/`.
 6. Implement from `docs/implementation-plan.md`.
 7. Track work using `docs/github-issues.md`.
-# ime-voice-autocorrect
+
+## Development
+
+```fish
+pnpm install
+pnpm test
+pnpm typecheck
+pnpm build
+```
+
+Load `apps/extension/dist` as an unpacked ChromeOS IME extension and install the recorder IWA from `apps/recorder-iwa/dist` per `docs/chromeos-install-and-flags.md`.
