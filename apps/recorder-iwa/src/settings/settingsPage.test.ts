@@ -16,6 +16,7 @@ describe("settingsPage", () => {
       noiseGate: { checked: false } as HTMLInputElement,
       showPartial: { checked: true } as HTMLInputElement,
       activationMode: { value: "toggle" } as HTMLSelectElement,
+      languageHint: { value: "fi" } as HTMLSelectElement,
       personalDictionary: { value: "" } as HTMLTextAreaElement,
       technicalDictionary: { value: "" } as HTMLTextAreaElement,
       ignoreList: { value: "" } as HTMLTextAreaElement,
@@ -29,10 +30,12 @@ describe("settingsPage", () => {
 
     elements.apiKey.value = "sk_test";
     elements.activationMode.value = "toggle";
+    elements.languageHint.value = "fi";
     submitHandler?.({ preventDefault: vi.fn() });
 
     expect(store.load().elevenLabsApiKey).toBe("sk_test");
     expect(store.load().activationMode).toBe("toggle");
+    expect(store.load().languageHint).toBe("fi");
     expect(elements.saveStatus.textContent).toBe("Saved");
   });
 
@@ -42,6 +45,7 @@ describe("settingsPage", () => {
       noiseGate: { checked: true } as HTMLInputElement,
       showPartial: { checked: false } as HTMLInputElement,
       activationMode: { value: "push-to-talk" } as HTMLSelectElement,
+      languageHint: { value: "en" } as HTMLSelectElement,
       personalDictionary: { value: "teh, custom" } as HTMLTextAreaElement,
       technicalDictionary: { value: "symspell" } as HTMLTextAreaElement,
       ignoreList: { value: "chromr" } as HTMLTextAreaElement,
@@ -53,6 +57,7 @@ describe("settingsPage", () => {
       elevenLabsApiKey: "key",
       elevenLabsNoiseGate: true,
       showPartialTranscript: false,
+      languageHint: "en",
       personalDictionary: ["teh", "custom"],
       technicalDictionary: ["symspell"],
       ignoreList: ["chromr"],

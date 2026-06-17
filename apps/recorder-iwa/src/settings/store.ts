@@ -1,5 +1,6 @@
 export interface RecorderSettings {
   activationMode: "push-to-talk" | "toggle";
+  languageHint: "auto" | "en" | "fi";
   spokenPunctuation: boolean;
   appendSpace: boolean;
   showPartialTranscript: boolean;
@@ -13,6 +14,7 @@ export interface RecorderSettings {
 
 export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
   activationMode: "push-to-talk",
+  languageHint: "auto",
   spokenPunctuation: true,
   appendSpace: false,
   showPartialTranscript: true,
@@ -49,6 +51,7 @@ export class SettingsStore {
   toSharedSnapshot(settings: RecorderSettings) {
     return {
       activationMode: settings.activationMode,
+      languageHint: settings.languageHint,
       spokenPunctuation: settings.spokenPunctuation,
       appendSpace: settings.appendSpace,
       showPartialTranscript: settings.showPartialTranscript,

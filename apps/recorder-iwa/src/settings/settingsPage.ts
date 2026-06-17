@@ -7,6 +7,7 @@ export interface SettingsFormElements {
   noiseGate: HTMLInputElement;
   showPartial: HTMLInputElement;
   activationMode: HTMLSelectElement;
+  languageHint: HTMLSelectElement;
   personalDictionary: HTMLTextAreaElement;
   technicalDictionary: HTMLTextAreaElement;
   ignoreList: HTMLTextAreaElement;
@@ -16,6 +17,7 @@ export interface SettingsFormElements {
 export function readSettingsFromForm(elements: SettingsFormElements): RecorderSettings {
   return {
     activationMode: elements.activationMode.value as RecorderSettings["activationMode"],
+    languageHint: elements.languageHint.value as RecorderSettings["languageHint"],
     spokenPunctuation: true,
     appendSpace: false,
     showPartialTranscript: elements.showPartial.checked,
@@ -36,6 +38,7 @@ export function writeSettingsToForm(
   elements.noiseGate.checked = settings.elevenLabsNoiseGate;
   elements.showPartial.checked = settings.showPartialTranscript;
   elements.activationMode.value = settings.activationMode;
+  elements.languageHint.value = settings.languageHint;
   elements.personalDictionary.value = formatWordList(settings.personalDictionary);
   elements.technicalDictionary.value = formatWordList(settings.technicalDictionary);
   elements.ignoreList.value = formatWordList(settings.ignoreList);

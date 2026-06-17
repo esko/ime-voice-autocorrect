@@ -8,6 +8,7 @@ export function mergeSharedSettingsIntoRecorder(
   return {
     ...current,
     activationMode: shared.activationMode ?? current.activationMode,
+    languageHint: shared.languageHint ?? current.languageHint,
     spokenPunctuation: shared.spokenPunctuation ?? current.spokenPunctuation,
     appendSpace: shared.appendSpace ?? current.appendSpace,
     showPartialTranscript: shared.showPartialTranscript ?? current.showPartialTranscript,

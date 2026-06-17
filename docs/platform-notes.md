@@ -13,6 +13,12 @@ These are implementation facts that must be validated on the target Chromebook d
 - `deleteSurroundingText` deletes text around the caret.
 - Assistive window buttons include `undo` and `addToDictionary`.
 
+## IME menu and assistive undo
+
+- Extension registers menu items for dictation status, recorder status, settings hint, and autocorrect/dictation toggles via `chrome.input.ime.setMenuItems`.
+- After autocorrect replaces a token, extension shows the ChromeOS undo assistive window via `setAssistiveWindowProperties`.
+- Verify both behaviors on the target Chromebook; typings in `@types/chrome` may differ slightly from runtime event shapes.
+
 ## input_components
 
 - Define two `input_components`.

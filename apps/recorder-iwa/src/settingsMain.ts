@@ -10,6 +10,7 @@ if (typeof document !== "undefined") {
   const noiseGate = document.getElementById("noise-gate");
   const showPartial = document.getElementById("show-partial");
   const activationMode = document.getElementById("activation-mode");
+  const languageHint = document.getElementById("language-hint");
   const personalDictionary = document.getElementById("personal-dictionary");
   const technicalDictionary = document.getElementById("technical-dictionary");
   const ignoreList = document.getElementById("ignore-list");
@@ -25,6 +26,7 @@ if (typeof document !== "undefined") {
     noiseGate instanceof HTMLInputElement &&
     showPartial instanceof HTMLInputElement &&
     activationMode instanceof HTMLSelectElement &&
+    languageHint instanceof HTMLSelectElement &&
     personalDictionary instanceof HTMLTextAreaElement &&
     technicalDictionary instanceof HTMLTextAreaElement &&
     ignoreList instanceof HTMLTextAreaElement &&
@@ -67,6 +69,7 @@ if (typeof document !== "undefined") {
         noiseGate,
         showPartial,
         activationMode,
+        languageHint,
         personalDictionary,
         technicalDictionary,
         ignoreList,

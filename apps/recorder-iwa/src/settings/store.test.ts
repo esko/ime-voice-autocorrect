@@ -21,6 +21,7 @@ describe("SettingsStore", () => {
 
     expect(store.toSharedSnapshot(DEFAULT_RECORDER_SETTINGS)).toEqual({
       activationMode: "push-to-talk",
+      languageHint: "auto",
       spokenPunctuation: true,
       appendSpace: false,
       showPartialTranscript: true,
