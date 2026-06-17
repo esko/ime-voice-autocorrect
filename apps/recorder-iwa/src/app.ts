@@ -26,7 +26,9 @@ export function createRecorderApp(options: {
           options.socketFactory,
           {
             onPartial: (text) => {
-              ui.setPartial(text);
+              if (settings.load().showPartialTranscript) {
+                ui.setPartial(text);
+              }
               bridgeServer.send({
                 type: "PARTIAL_TRANSCRIPT",
                 sessionId: message.sessionId,
