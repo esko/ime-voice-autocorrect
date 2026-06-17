@@ -1,4 +1,8 @@
+import type { DictationSessionConfig } from "@input-assist/protocol";
 import { decodeRealtimeMessage } from "./realtimeProtocol.js";
+import { buildRealtimeWebSocketUrl } from "./createRealtimeSocket.js";
+import type { LanguageHint } from "./createRealtimeSocket.js";
+import { float32ToPcm16, pcm16ToBase64 } from "./pcmUtils.js";
 
 export interface RealtimeSocketHandlers {
   onSessionStarted(): void;
@@ -10,6 +14,7 @@ export interface RealtimeSocketHandlers {
 export interface RealtimeSocketOptions {
   createWebSocket: (url: string) => WebSocketLike;
   fetchToken: () => Promise<string>;
+  getLanguageHint: () => LanguageHint;
   handlers: RealtimeSocketHandlers;
 }
 
@@ -25,6 +30,7 @@ const OPEN = 1;
 export class RealtimeSocket {
   private readonly createWebSocket: RealtimeSocketOptions["createWebSocket"];
   private readonly fetchToken: RealtimeSocketOptions["fetchToken"];
+  private readonly getLanguageHint: RealtimeSocketOptions["getLanguageHint"];
   private readonly handlers: RealtimeSocketHandlers;
   private socket: WebSocketLike | null = null;
   private sessionReady = false;
@@ -33,12 +39,14 @@ export class RealtimeSocket {
   constructor(options: RealtimeSocketOptions) {
     this.createWebSocket = options.createWebSocket;
     this.fetchToken = options.fetchToken;
+    this.getLanguageHint = options.getLanguageHint;
     this.handlers = options.handlers;
   }
 
   async connect(): Promise<void> {
     const token = await this.fetchToken();
-    this.socket = this.createWebSocket(`wss://api.elevenlabs.io/v1/realtime?token=${token}`);
+    const url = buildRealtimeWebSocketUrl(token, this.getLanguageHint());
+    this.socket = this.createWebSocket(url);
     this.socket.addEventListener("message", (event) => {
       if (typeof event.data !== "string") {
         return;
@@ -68,7 +76,13 @@ export class RealtimeSocket {
     if (!this.sessionReady || !this.socket || this.socket.readyState !== OPEN) {
       return;
     }
-    this.socket.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: base64Chunk }));
+    this.socket.send(
+      JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: base64Chunk }),
+    );
+  }
+
+  sendPcmFrame(samples: Float32Array): void {
+    this.sendAudio(pcm16ToBase64(float32ToPcm16(samples)));
   }
 
   async stop(): Promise<void> {

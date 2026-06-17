@@ -3,6 +3,9 @@ export interface RecorderSettings {
   spokenPunctuation: boolean;
   appendSpace: boolean;
   showPartialTranscript: boolean;
+  elevenLabsApiKey: string;
+  elevenLabsNoiseGate: boolean;
+  elevenLabsInputDeviceId: string;
 }
 
 export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
@@ -10,6 +13,9 @@ export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
   spokenPunctuation: true,
   appendSpace: false,
   showPartialTranscript: true,
+  elevenLabsApiKey: "",
+  elevenLabsNoiseGate: true,
+  elevenLabsInputDeviceId: "",
 };
 
 export interface SettingsStorage {

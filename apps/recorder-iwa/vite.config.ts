@@ -8,7 +8,7 @@ export default defineConfig(
       outDir: "dist",
       emptyOutDir: true,
       rollupOptions: {
-        input: resolve(__dirname, "src/app.ts"),
+        input: resolve(__dirname, "src/main.ts"),
         output: { entryFileNames: "app.js", format: "es" },
       },
       copyPublicDir: true,

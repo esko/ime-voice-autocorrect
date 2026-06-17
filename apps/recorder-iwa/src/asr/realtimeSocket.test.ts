@@ -18,6 +18,7 @@ describe("RealtimeSocket", () => {
     const onSessionStarted = vi.fn();
     const client = new RealtimeSocket({
       fetchToken: async () => "token",
+      getLanguageHint: () => "auto",
       createWebSocket: () => socket,
       handlers: {
         onSessionStarted,
@@ -43,6 +44,7 @@ describe("RealtimeSocket", () => {
   it("does not reconnect after user stop", async () => {
     const client = new RealtimeSocket({
       fetchToken: async () => "token",
+      getLanguageHint: () => "auto",
       createWebSocket: () => ({
         readyState: 1,
         send: vi.fn(),
