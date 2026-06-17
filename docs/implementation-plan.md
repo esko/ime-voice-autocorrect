@@ -119,7 +119,7 @@ Acceptance tests:
 - partials do not mutate text by default
 - `scratch that` erases prior pending segment
 - error cancels backend and clears state
-- silence timeout stops with clear error
+- no silence timeout; sessions end only on chord release, toggle-off, Escape, context loss, or error
 - formatter strips unsafe controls from partials
 - spoken punctuation transforms expected phrases
 
@@ -463,9 +463,7 @@ Settings groups:
   - en
   - fi
 - noise gate
-- silence timeout
 - partial transcript visible in recorder UI
-- live partial insertion: off by default; dangerous/experimental
 
 ### Autocorrect
 
@@ -475,7 +473,7 @@ Settings groups:
 - ignore list
 - technical dictionary
 - show undo assistive window
-- correct dictated English text
+- autocorrect applies to typed input only; dictated text is never corrected
 
 ### Window
 
