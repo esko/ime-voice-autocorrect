@@ -6,8 +6,11 @@ export interface SettingsFormElements {
   apiKey: HTMLInputElement;
   noiseGate: HTMLInputElement;
   showPartial: HTMLInputElement;
+  spokenPunctuation: HTMLInputElement;
+  appendSpace: HTMLInputElement;
   activationMode: HTMLSelectElement;
   languageHint: HTMLSelectElement;
+  inputDevice: HTMLSelectElement;
   personalDictionary: HTMLTextAreaElement;
   technicalDictionary: HTMLTextAreaElement;
   ignoreList: HTMLTextAreaElement;
@@ -18,12 +21,12 @@ export function readSettingsFromForm(elements: SettingsFormElements): RecorderSe
   return {
     activationMode: elements.activationMode.value as RecorderSettings["activationMode"],
     languageHint: elements.languageHint.value as RecorderSettings["languageHint"],
-    spokenPunctuation: true,
-    appendSpace: false,
+    spokenPunctuation: elements.spokenPunctuation.checked,
+    appendSpace: elements.appendSpace.checked,
     showPartialTranscript: elements.showPartial.checked,
     elevenLabsApiKey: elements.apiKey.value.trim(),
     elevenLabsNoiseGate: elements.noiseGate.checked,
-    elevenLabsInputDeviceId: "",
+    elevenLabsInputDeviceId: elements.inputDevice.value,
     personalDictionary: parseWordList(elements.personalDictionary.value),
     technicalDictionary: parseWordList(elements.technicalDictionary.value),
     ignoreList: parseWordList(elements.ignoreList.value),
@@ -37,8 +40,11 @@ export function writeSettingsToForm(
   elements.apiKey.value = settings.elevenLabsApiKey;
   elements.noiseGate.checked = settings.elevenLabsNoiseGate;
   elements.showPartial.checked = settings.showPartialTranscript;
+  elements.spokenPunctuation.checked = settings.spokenPunctuation;
+  elements.appendSpace.checked = settings.appendSpace;
   elements.activationMode.value = settings.activationMode;
   elements.languageHint.value = settings.languageHint;
+  elements.inputDevice.value = settings.elevenLabsInputDeviceId;
   elements.personalDictionary.value = formatWordList(settings.personalDictionary);
   elements.technicalDictionary.value = formatWordList(settings.technicalDictionary);
   elements.ignoreList.value = formatWordList(settings.ignoreList);

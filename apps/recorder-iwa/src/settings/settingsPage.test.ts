@@ -15,8 +15,11 @@ describe("settingsPage", () => {
       apiKey: { value: "sk_test" } as HTMLInputElement,
       noiseGate: { checked: false } as HTMLInputElement,
       showPartial: { checked: true } as HTMLInputElement,
+      spokenPunctuation: { checked: false } as HTMLInputElement,
+      appendSpace: { checked: true } as HTMLInputElement,
       activationMode: { value: "toggle" } as HTMLSelectElement,
       languageHint: { value: "fi" } as HTMLSelectElement,
+      inputDevice: { value: "mic-1" } as HTMLSelectElement,
       personalDictionary: { value: "" } as HTMLTextAreaElement,
       technicalDictionary: { value: "" } as HTMLTextAreaElement,
       ignoreList: { value: "" } as HTMLTextAreaElement,
@@ -31,11 +34,17 @@ describe("settingsPage", () => {
     elements.apiKey.value = "sk_test";
     elements.activationMode.value = "toggle";
     elements.languageHint.value = "fi";
+    elements.spokenPunctuation.checked = false;
+    elements.appendSpace.checked = true;
+    elements.inputDevice.value = "mic-1";
     submitHandler?.({ preventDefault: vi.fn() });
 
     expect(store.load().elevenLabsApiKey).toBe("sk_test");
     expect(store.load().activationMode).toBe("toggle");
     expect(store.load().languageHint).toBe("fi");
+    expect(store.load().spokenPunctuation).toBe(false);
+    expect(store.load().appendSpace).toBe(true);
+    expect(store.load().elevenLabsInputDeviceId).toBe("mic-1");
     expect(elements.saveStatus.textContent).toBe("Saved");
   });
 
@@ -44,8 +53,11 @@ describe("settingsPage", () => {
       apiKey: { value: "  key  " } as HTMLInputElement,
       noiseGate: { checked: true } as HTMLInputElement,
       showPartial: { checked: false } as HTMLInputElement,
+      spokenPunctuation: { checked: true } as HTMLInputElement,
+      appendSpace: { checked: true } as HTMLInputElement,
       activationMode: { value: "push-to-talk" } as HTMLSelectElement,
       languageHint: { value: "en" } as HTMLSelectElement,
+      inputDevice: { value: "mic-2" } as HTMLSelectElement,
       personalDictionary: { value: "teh, custom" } as HTMLTextAreaElement,
       technicalDictionary: { value: "symspell" } as HTMLTextAreaElement,
       ignoreList: { value: "chromr" } as HTMLTextAreaElement,
@@ -57,7 +69,10 @@ describe("settingsPage", () => {
       elevenLabsApiKey: "key",
       elevenLabsNoiseGate: true,
       showPartialTranscript: false,
+      spokenPunctuation: true,
+      appendSpace: true,
       languageHint: "en",
+      elevenLabsInputDeviceId: "mic-2",
       personalDictionary: ["teh", "custom"],
       technicalDictionary: ["symspell"],
       ignoreList: ["chromr"],
