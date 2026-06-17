@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createInputAssistApp } from "./inputAssistApp.js";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
+import { ExtensionImePreferences } from "../storage/imePreferences.js";
 
 describe("createInputAssistApp", () => {
   it("auto-launches recorder before dictation when bridge is disconnected", async () => {
@@ -63,6 +64,42 @@ describe("createInputAssistApp", () => {
     }
 
     expect(commits).toEqual([]);
+  });
+
+  it("restores ime menu toggles from persisted preferences", async () => {
+    const memory: Record<string, unknown> = {
+      imePreferences: { autocorrectEnabled: false, dictationEnabled: false },
+    };
+    const preferences = new ExtensionImePreferences({
+      get: async (keys) =>
+        Object.fromEntries(keys.map((key) => [key, memory[key] ?? null])),
+      set: async (items) => {
+        Object.assign(memory, items);
+      },
+    });
+    const setMenuItems = vi.fn();
+    const app = createInputAssistApp({
+      allowedOrigin: "isolated-app://abc",
+      launchRecorder: async () => {},
+      imePreferences: preferences,
+      imeUi: {
+        setMenuItems,
+        setAssistiveWindowProperties: () => {},
+      },
+      imeAdapter: {
+        hasValidContext: () => true,
+        getContextType: () => "text",
+        getContextId: () => 1,
+        commitText: async () => true,
+        deleteSurroundingText: async () => true,
+      },
+    });
+
+    await app.hydrateImePreferences();
+
+    expect(app.autocorrect.isEnabled()).toBe(false);
+    expect(app.dictation.isDictationEnabled()).toBe(false);
+    expect(setMenuItems).toHaveBeenCalled();
   });
 
   it("blocks dictation in password fields", async () => {

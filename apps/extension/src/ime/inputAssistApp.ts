@@ -8,6 +8,8 @@ import { PendingRecorderLauncher } from "../recorder/launcher.js";
 import type { RecorderToExtensionMessage } from "@input-assist/protocol";
 import { DEFAULT_DICTATION_CONFIG } from "@input-assist/dictation-core";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
+import type { ExtensionImePreferences } from "../storage/imePreferences.js";
+import { DEFAULT_IME_PREFERENCES } from "../storage/imePreferences.js";
 import type { ChromeImeUiAdapter } from "./chromeImeUiAdapter.js";
 import { AssistiveUndoController } from "./chromeImeUiAdapter.js";
 import { ImeMenuController } from "./imeMenuController.js";
@@ -20,6 +22,7 @@ export interface InputAssistAppOptions {
   imeAdapter: ConstructorParameters<typeof DictationService>[0]["imeAdapter"];
   createSessionId?: () => string;
   settingsCache?: ExtensionSettingsCache;
+  imePreferences?: ExtensionImePreferences;
   imeUi?: ChromeImeUiAdapter;
 }
 
@@ -78,12 +81,18 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       {
         recorderConnected: false,
         dictationActive: false,
-        autocorrectEnabled: true,
-        dictationEnabled: true,
+        autocorrectEnabled: DEFAULT_IME_PREFERENCES.autocorrectEnabled,
+        dictationEnabled: DEFAULT_IME_PREFERENCES.dictationEnabled,
       },
       (state) => {
         autocorrect.setEnabled(state.autocorrectEnabled);
         dictation.setDictationEnabled(state.dictationEnabled);
+        if (options.imePreferences) {
+          void options.imePreferences.save({
+            autocorrectEnabled: state.autocorrectEnabled,
+            dictationEnabled: state.dictationEnabled,
+          });
+        }
       },
     );
   }
@@ -173,6 +182,19 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
         ignoreList: cached.ignoreList,
       });
       dictation.applySharedSettings(cached);
+    },
+    async hydrateImePreferences() {
+      if (!options.imePreferences || !menuController) {
+        return;
+      }
+      const preferences = await options.imePreferences.load();
+      menuController.update({
+        autocorrectEnabled: preferences.autocorrectEnabled,
+        dictationEnabled: preferences.dictationEnabled,
+      });
+      autocorrect.setEnabled(preferences.autocorrectEnabled);
+      dictation.setDictationEnabled(preferences.dictationEnabled);
+      refreshAllImeMenus();
     },
     setActiveContextType(type: string | undefined) {
       activeContextType = type;

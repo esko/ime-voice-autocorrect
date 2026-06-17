@@ -34,7 +34,7 @@ Run this on the target Chromebook.
 - [ ] Finnish words containing `ä` are ignored.
 - [ ] URL field is not aggressively corrected.
 - [ ] Email field is not aggressively corrected.
-- [ ] Password field disables correction.
+- [ ] Password field disables dictation; autocorrect may continue.
 - [ ] Backspace immediately after correction restores original.
 - [ ] Personal dictionary prevents correction.
 - [ ] Ignore list prevents correction.

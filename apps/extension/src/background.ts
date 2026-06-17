@@ -12,6 +12,7 @@ export function registerInputAssist(
     launchRecorder: () => Promise<void>;
     imeAdapter?: Parameters<typeof createInputAssistApp>[0]["imeAdapter"];
     settingsCache?: ExtensionSettingsCache;
+    imePreferences?: ExtensionImePreferences;
     imeUi?: Parameters<typeof createInputAssistApp>[0]["imeUi"];
   },
 ) {
