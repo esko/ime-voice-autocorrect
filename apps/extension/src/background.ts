@@ -41,6 +41,13 @@ export function registerInputAssist(
     const type = keyData.type === "keyup" ? "keyup" : "keydown";
     const route = app.keyRouter.route(key, type);
 
+    if (route === "pass-through" && type === "keydown" && key === "Backspace") {
+      const active = app.contexts.getActive();
+      if (active && (await app.autocorrect.onBackspace(active.contextId))) {
+        return false;
+      }
+    }
+
     if (route === "pass-through" && type === "keydown" && key.length === 1) {
       const active = app.contexts.getActive();
       if (active) {
