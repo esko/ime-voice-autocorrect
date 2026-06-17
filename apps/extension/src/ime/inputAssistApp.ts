@@ -7,12 +7,14 @@ import { isDictationAllowed } from "../ime/unsafeField.js";
 import { PendingRecorderLauncher } from "../recorder/launcher.js";
 import type { RecorderToExtensionMessage } from "@input-assist/protocol";
 import { DEFAULT_DICTATION_CONFIG } from "@input-assist/dictation-core";
+import { ExtensionSettingsCache } from "../storage/settingsCache.js";
 
 export interface InputAssistAppOptions {
   allowedOrigin: string;
   launchRecorder: () => Promise<void>;
   imeAdapter: ConstructorParameters<typeof DictationService>[0]["imeAdapter"];
   createSessionId?: () => string;
+  settingsCache?: ExtensionSettingsCache;
 }
 
 export function createInputAssistApp(options: InputAssistAppOptions) {
@@ -24,6 +26,9 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   const bridge = new ExtensionBridgeServer({
     allowedOrigin: options.allowedOrigin,
     onRecorderMessage: (message: RecorderToExtensionMessage) => {
+      if (message.type === "SETTINGS_SNAPSHOT" && options.settingsCache) {
+        void options.settingsCache.save(message.settings);
+      }
       dictationHolder.service?.handleRecorderMessage(message);
     },
   });
