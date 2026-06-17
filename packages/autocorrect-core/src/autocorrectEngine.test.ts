@@ -1,0 +1,125 @@
+import { describe, expect, it } from "vitest";
+import { createAutocorrectEngine } from "./autocorrectEngine.js";
+import { createTestDictionary } from "./dictionary.js";
+import { extractLastWord, isWordBoundary } from "./tokenizer.js";
+
+describe("tokenizer", () => {
+  it("detects word boundaries", () => {
+    expect(isWordBoundary(" ")).toBe(true);
+    expect(isWordBoundary("a")).toBe(false);
+  });
+
+  it("extracts the last word before a boundary", () => {
+    expect(extractLastWord("say teh")).toBe("teh");
+  });
+});
+
+describe("autocorrect on word boundary", () => {
+  it("corrects teh to the", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+    });
+
+    expect(engine.correctToken("teh")).toMatchObject({
+      kind: "corrected",
+      original: "teh",
+      corrected: "the",
+    });
+  });
+
+  it("corrects recieve to receive", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "receive", frequency: 900 }],
+      }),
+    });
+
+    expect(engine.correctToken("recieve")).toMatchObject({
+      kind: "corrected",
+      original: "recieve",
+      corrected: "receive",
+    });
+  });
+
+  it("prefers keyboard-neighbor typos such as chromr to chrome", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+    });
+
+    expect(engine.correctToken("chromr")).toMatchObject({
+      kind: "corrected",
+      corrected: "chrome",
+    });
+  });
+
+  it("ignores Finnish tokens containing å, ä, or ö", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+    });
+
+    expect(engine.correctToken("tämä")).toEqual({
+      kind: "unchanged",
+      original: "tämä",
+    });
+  });
+
+  it("ignores technical tokens", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+    });
+
+    for (const token of ["fooBar", "snake_case", "kebab-case", "API_KEY", "https://example.com"]) {
+      expect(engine.correctToken(token)).toEqual({
+        kind: "unchanged",
+        original: token,
+      });
+    }
+  });
+
+  it("does not correct ambiguous candidates", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [
+          { word: "cat", frequency: 100 },
+          { word: "car", frequency: 100 },
+        ],
+      }),
+      minConfidence: 1.2,
+    });
+
+    expect(engine.correctToken("cqt")).toEqual({
+      kind: "unchanged",
+      original: "cqt",
+    });
+  });
+
+  it("honors personal dictionary and ignore list", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+      personalDictionary: ["teh"],
+      ignoreList: ["chromr"],
+    });
+
+    expect(engine.correctToken("teh")).toEqual({
+      kind: "unchanged",
+      original: "teh",
+    });
+
+    expect(engine.correctToken("chromr")).toEqual({
+      kind: "unchanged",
+      original: "chromr",
+    });
+  });
+
+  it("returns undo metadata for corrections", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary(),
+    });
+
+    const result = engine.correctToken("teh");
+    expect(result).toMatchObject({
+      kind: "corrected",
+      undo: { restore: "teh", deleteLength: 3 },
+    });
+  });
+});
