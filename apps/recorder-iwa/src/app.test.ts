@@ -1,38 +1,68 @@
 import { describe, expect, it, vi } from "vitest";
-import { RecorderBridgeClient } from "./bridge/client.js";
+import { createRecorderApp } from "./app.js";
 
-describe("RecorderBridgeClient", () => {
-  it("sends HELLO and resolves when HELLO_ACK arrives", () => {
-    const listeners: Array<(message: unknown) => void> = [];
+describe("createRecorderApp", () => {
+  it("handles start and stop session commands from the extension", async () => {
+    const outbound: unknown[] = [];
+    const inbound: Array<(message: unknown) => void> = [];
     const port = {
-      postMessage: vi.fn(),
+      postMessage: (message: unknown) => outbound.push(message),
       onMessage: {
-        addListener: (listener: (message: unknown) => void) => listeners.push(listener),
+        addListener: (listener: (message: unknown) => void) => inbound.push(listener),
         removeListener: vi.fn(),
       },
     };
-    const onReady = vi.fn();
 
-    const client = new RecorderBridgeClient({
-      extensionId: "ext-id",
-      appId: "input-assist-recorder",
-      connect: () => port,
-      onReady,
+    const app = createRecorderApp({
+      extensionId: "ext-1",
+      createPort: () => port,
+      socketFactory: () =>
+        ({
+          connect: async () => {},
+          sendAudio: () => {},
+          stop: async () => {},
+          cancel: () => {},
+          shouldReconnect: () => false,
+        }) as never,
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+      },
     });
 
-    client.connectBridge();
-    expect(port.postMessage).toHaveBeenCalledWith({
-      type: "HELLO",
-      protocolVersion: 1,
-      appId: "input-assist-recorder",
-    });
+    app.bridgeClient.connectBridge();
 
-    listeners[0]?.({
-      type: "HELLO_ACK",
-      protocolVersion: 1,
-      extensionState: { recorderConnected: true },
-    });
-    expect(onReady).toHaveBeenCalledOnce();
-    expect(client.isConnected()).toBe(true);
+    for (const listener of inbound) {
+      listener({
+        type: "HELLO_ACK",
+        protocolVersion: 1,
+        extensionState: { recorderConnected: true },
+      });
+    }
+
+    for (const listener of inbound) {
+      listener({
+        type: "START_SESSION",
+        sessionId: "sess-1",
+        config: {
+          activationMode: "push-to-talk",
+          languageHint: "auto",
+          spokenPunctuation: true,
+          appendSpace: false,
+        },
+      });
+    }
+
+    const controller = app.getSessionController();
+    expect(controller).not.toBeNull();
+    controller?.appendCommitted("hello world");
+
+    for (const listener of inbound) {
+      listener({ type: "STOP_SESSION", sessionId: "sess-1" });
+    }
+
+    expect(
+      outbound.some((message) => (message as { type: string }).type === "FINAL_TRANSCRIPT"),
+    ).toBe(true);
   });
 });
