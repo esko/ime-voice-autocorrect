@@ -9,7 +9,7 @@ export default defineConfig(
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          background: resolve(__dirname, "src/background.ts"),
+          background: resolve(__dirname, "src/bootstrap.ts"),
         },
         output: { entryFileNames: "[name].js", format: "es" },
       },

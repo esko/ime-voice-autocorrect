@@ -1,27 +1,38 @@
 import { ContextTracker } from "./ime/contextTracker.js";
+import { createChromeImeAdapter } from "./ime/chromeImeAdapter.js";
 import { createInputAssistApp } from "./ime/inputAssistApp.js";
 import type { BridgePort } from "./bridge/server.js";
+import type { ExtensionSettingsCache } from "./storage/settingsCache.js";
 
 export function registerInputAssist(
   chromeApi: typeof chrome,
   options: {
     allowedOrigin: string;
     launchRecorder: () => Promise<void>;
-    imeAdapter: Parameters<typeof createInputAssistApp>[0]["imeAdapter"];
+    imeAdapter?: Parameters<typeof createInputAssistApp>[0]["imeAdapter"];
+    settingsCache?: ExtensionSettingsCache;
   },
 ) {
-  const app = createInputAssistApp(options);
+  let activeContext: chrome.input.ime.InputContext | null = null;
   let activeEngineId = "input-assist-us";
+  const imeAdapter =
+    options.imeAdapter ??
+    createChromeImeAdapter(chromeApi, () => activeContext, () => activeEngineId);
+  const app = createInputAssistApp({ ...options, imeAdapter });
 
   chromeApi.input.ime.onActivate.addListener((engineId) => {
     activeEngineId = engineId;
   });
 
   chromeApi.input.ime.onFocus.addListener((context) => {
+    activeContext = context;
     app.onFocus(activeEngineId, context);
   });
 
   chromeApi.input.ime.onBlur.addListener((contextId) => {
+    if (activeContext?.contextID === contextId) {
+      activeContext = null;
+    }
     app.onBlur(contextId);
   });
 
