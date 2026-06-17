@@ -1,3 +1,4 @@
+import { formatWordList, parseWordList } from "@input-assist/autocorrect-core";
 import type { RecorderSettings } from "./store.js";
 import type { SettingsStore } from "./store.js";
 
@@ -6,6 +7,8 @@ export interface SettingsFormElements {
   noiseGate: HTMLInputElement;
   showPartial: HTMLInputElement;
   activationMode: HTMLSelectElement;
+  personalDictionary: HTMLTextAreaElement;
+  ignoreList: HTMLTextAreaElement;
   saveStatus: HTMLElement;
 }
 
@@ -18,6 +21,8 @@ export function readSettingsFromForm(elements: SettingsFormElements): RecorderSe
     elevenLabsApiKey: elements.apiKey.value.trim(),
     elevenLabsNoiseGate: elements.noiseGate.checked,
     elevenLabsInputDeviceId: "",
+    personalDictionary: parseWordList(elements.personalDictionary.value),
+    ignoreList: parseWordList(elements.ignoreList.value),
   };
 }
 
@@ -29,6 +34,8 @@ export function writeSettingsToForm(
   elements.noiseGate.checked = settings.elevenLabsNoiseGate;
   elements.showPartial.checked = settings.showPartialTranscript;
   elements.activationMode.value = settings.activationMode;
+  elements.personalDictionary.value = formatWordList(settings.personalDictionary);
+  elements.ignoreList.value = formatWordList(settings.ignoreList);
 }
 
 export function mountSettingsPage(

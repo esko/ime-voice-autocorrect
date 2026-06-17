@@ -21,6 +21,8 @@ export const sharedSettingsSchema = z
     spokenPunctuation: z.boolean().optional(),
     appendSpace: z.boolean().optional(),
     showPartialTranscript: z.boolean().optional(),
+    personalDictionary: z.array(z.string().min(1)).optional(),
+    ignoreList: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

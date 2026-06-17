@@ -16,6 +16,8 @@ describe("settingsPage", () => {
       noiseGate: { checked: false } as HTMLInputElement,
       showPartial: { checked: true } as HTMLInputElement,
       activationMode: { value: "toggle" } as HTMLSelectElement,
+      personalDictionary: { value: "" } as HTMLTextAreaElement,
+      ignoreList: { value: "" } as HTMLTextAreaElement,
       saveStatus: { textContent: "" } as HTMLElement,
     };
 
@@ -39,6 +41,8 @@ describe("settingsPage", () => {
       noiseGate: { checked: true } as HTMLInputElement,
       showPartial: { checked: false } as HTMLInputElement,
       activationMode: { value: "push-to-talk" } as HTMLSelectElement,
+      personalDictionary: { value: "teh, custom" } as HTMLTextAreaElement,
+      ignoreList: { value: "chromr" } as HTMLTextAreaElement,
       saveStatus: { textContent: "" } as HTMLElement,
     });
 
@@ -47,6 +51,8 @@ describe("settingsPage", () => {
       elevenLabsApiKey: "key",
       elevenLabsNoiseGate: true,
       showPartialTranscript: false,
+      personalDictionary: ["teh", "custom"],
+      ignoreList: ["chromr"],
     });
   });
 });

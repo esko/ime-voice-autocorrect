@@ -9,8 +9,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src"
   },
+  "dependencies": {
+    "@input-assist/autocorrect-core": "workspace:*",
+    "@input-assist/protocol": "workspace:*"
+  },
   "devDependencies": {
-    "@input-assist/protocol": "workspace:*",
     "typescript": "^5.7.2",
     "vite": "^6.0.6",
     "vitest": "^2.1.8"

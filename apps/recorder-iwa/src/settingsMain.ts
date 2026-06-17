@@ -7,6 +7,8 @@ if (typeof document !== "undefined") {
   const noiseGate = document.getElementById("noise-gate");
   const showPartial = document.getElementById("show-partial");
   const activationMode = document.getElementById("activation-mode");
+  const personalDictionary = document.getElementById("personal-dictionary");
+  const ignoreList = document.getElementById("ignore-list");
   const saveStatus = document.getElementById("save-status");
 
   if (
@@ -15,6 +17,8 @@ if (typeof document !== "undefined") {
     noiseGate instanceof HTMLInputElement &&
     showPartial instanceof HTMLInputElement &&
     activationMode instanceof HTMLSelectElement &&
+    personalDictionary instanceof HTMLTextAreaElement &&
+    ignoreList instanceof HTMLTextAreaElement &&
     saveStatus instanceof HTMLElement
   ) {
     const store = new SettingsStore(localStorage);
@@ -23,6 +27,8 @@ if (typeof document !== "undefined") {
       noiseGate,
       showPartial,
       activationMode,
+      personalDictionary,
+      ignoreList,
       saveStatus,
     });
   }

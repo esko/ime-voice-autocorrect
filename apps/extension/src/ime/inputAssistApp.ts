@@ -23,11 +23,30 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
 
   const dictationHolder: { service: DictationService | null } = { service: null };
 
+  const autocorrect = new AutocorrectImeAdapter({
+    deleteSurroundingText: async (contextId, length) => {
+      if (options.imeAdapter.getContextId() === contextId) {
+        await options.imeAdapter.deleteSurroundingText(length);
+      }
+    },
+    commitText: async (contextId, text) => {
+      if (options.imeAdapter.getContextId() === contextId) {
+        await options.imeAdapter.commitText(text);
+      }
+    },
+  });
+
   const bridge = new ExtensionBridgeServer({
     allowedOrigin: options.allowedOrigin,
     onRecorderMessage: (message: RecorderToExtensionMessage) => {
-      if (message.type === "SETTINGS_SNAPSHOT" && options.settingsCache) {
-        void options.settingsCache.save(message.settings);
+      if (message.type === "SETTINGS_SNAPSHOT") {
+        if (options.settingsCache) {
+          void options.settingsCache.save(message.settings);
+        }
+        autocorrect.updateWordLists({
+          personalDictionary: message.settings.personalDictionary,
+          ignoreList: message.settings.ignoreList,
+        });
       }
       dictationHolder.service?.handleRecorderMessage(message);
     },
@@ -50,19 +69,6 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     createSessionId: options.createSessionId,
   });
   dictationHolder.service = dictation;
-
-  const autocorrect = new AutocorrectImeAdapter({
-    deleteSurroundingText: async (contextId, length) => {
-      if (options.imeAdapter.getContextId() === contextId) {
-        await options.imeAdapter.deleteSurroundingText(length);
-      }
-    },
-    commitText: async (contextId, text) => {
-      if (options.imeAdapter.getContextId() === contextId) {
-        await options.imeAdapter.commitText(text);
-      }
-    },
-  });
 
   const textBuffers = new Map<number, string>();
 

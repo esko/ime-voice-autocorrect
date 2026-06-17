@@ -24,6 +24,8 @@ describe("SettingsStore", () => {
       spokenPunctuation: true,
       appendSpace: false,
       showPartialTranscript: true,
+      personalDictionary: [],
+      ignoreList: [],
     });
   });
 });

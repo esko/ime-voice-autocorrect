@@ -6,6 +6,8 @@ export interface RecorderSettings {
   elevenLabsApiKey: string;
   elevenLabsNoiseGate: boolean;
   elevenLabsInputDeviceId: string;
+  personalDictionary: string[];
+  ignoreList: string[];
 }
 
 export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
@@ -16,6 +18,8 @@ export const DEFAULT_RECORDER_SETTINGS: RecorderSettings = {
   elevenLabsApiKey: "",
   elevenLabsNoiseGate: true,
   elevenLabsInputDeviceId: "",
+  personalDictionary: [],
+  ignoreList: [],
 };
 
 export interface SettingsStorage {
@@ -46,6 +50,8 @@ export class SettingsStore {
       spokenPunctuation: settings.spokenPunctuation,
       appendSpace: settings.appendSpace,
       showPartialTranscript: settings.showPartialTranscript,
+      personalDictionary: settings.personalDictionary,
+      ignoreList: settings.ignoreList,
     };
   }
 }

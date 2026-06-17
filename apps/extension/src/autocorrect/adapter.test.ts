@@ -31,4 +31,19 @@ describe("AutocorrectImeAdapter", () => {
 
     expect(restored).toBe(true);
   });
+
+  it("honors personal dictionary entries from settings updates", async () => {
+    const commits: string[] = [];
+    const adapter = new AutocorrectImeAdapter({
+      deleteSurroundingText: async () => {},
+      commitText: async (_contextId, text) => {
+        commits.push(text);
+      },
+    });
+
+    adapter.updateWordLists({ personalDictionary: ["teh"] });
+    await adapter.onCharacterTyped(1, "say teh", " ");
+
+    expect(commits).toEqual([]);
+  });
 });

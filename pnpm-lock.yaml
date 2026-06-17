@@ -62,10 +62,14 @@ importers:
         version: 2.1.9
 
   apps/recorder-iwa:
-    devDependencies:
+    dependencies:
+      '@input-assist/autocorrect-core':
+        specifier: workspace:*
+        version: link:../../packages/autocorrect-core
       '@input-assist/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+    devDependencies:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
