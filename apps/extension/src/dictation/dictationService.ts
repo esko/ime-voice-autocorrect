@@ -28,6 +28,7 @@ export class DictationService {
   private readonly launcher: RecorderLauncher;
   private readonly isDictationAllowed: () => boolean;
   private sessionConfig: DictationSessionConfig;
+  private dictationEnabled = true;
 
   constructor(options: DictationServiceOptions) {
     this.bridge = options.bridge;
@@ -52,6 +53,21 @@ export class DictationService {
     this.session.updateConfig(sharedSettingsToDictationConfig(settings));
   }
 
+  setDictationEnabled(enabled: boolean): void {
+    this.dictationEnabled = enabled;
+    if (!enabled && this.session.isRunning()) {
+      this.session.onEscape();
+    }
+  }
+
+  isDictationEnabled(): boolean {
+    return this.dictationEnabled;
+  }
+
+  isDictationActive(): boolean {
+    return this.session.isRunning();
+  }
+
   handleRecorderMessage(message: RecorderToExtensionMessage): void {
     if (message.type === "PARTIAL_TRANSCRIPT") {
       this.bridgeRecorder.onPartial(message.text);
@@ -65,7 +81,7 @@ export class DictationService {
   }
 
   async onDictationChordDown(): Promise<void> {
-    if (!this.isDictationAllowed()) {
+    if (!this.dictationEnabled || !this.isDictationAllowed()) {
       return;
     }
     if (!this.bridge.isConnected()) {

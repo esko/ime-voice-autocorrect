@@ -54,4 +54,46 @@ describe("DictationService.applySharedSettings", () => {
       appendSpace: false,
     });
   });
+
+  it("does not start dictation when disabled from the ime menu", async () => {
+    const sent: unknown[] = [];
+    const bridge = new ExtensionBridgeServer({
+      allowedOrigin: "isolated-app://abc",
+      onRecorderMessage: () => {},
+    });
+    const port = {
+      postMessage: (message: unknown) => sent.push(message),
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn() },
+    };
+    bridge.connect(port, "isolated-app://abc/");
+
+    const service = new DictationService({
+      bridge,
+      launcher: { launch: async () => {} },
+      imeAdapter: {
+        hasValidContext: () => true,
+        getContextType: () => "text",
+        getContextId: () => 1,
+        commitText: async () => true,
+        deleteSurroundingText: async () => true,
+      },
+      dictationConfig: DEFAULT_DICTATION_CONFIG,
+      sessionConfig: {
+        activationMode: "push-to-talk",
+        languageHint: "auto",
+        spokenPunctuation: true,
+        appendSpace: false,
+      },
+      isDictationAllowed: () => true,
+      createSessionId: () => "sess-1",
+    });
+
+    service.setDictationEnabled(false);
+    await service.onDictationChordDown();
+
+    expect(sent.some((message) => (message as { type: string }).type === "START_SESSION")).toBe(
+      false,
+    );
+  });
 });

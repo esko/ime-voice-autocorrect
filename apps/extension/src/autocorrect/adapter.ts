@@ -19,25 +19,47 @@ export interface AutocorrectWordLists {
   ignoreList?: readonly string[];
 }
 
+export interface AutocorrectImeAdapterOptions {
+  dictionary?: Dictionary;
+  personalDictionary?: readonly string[];
+  ignoreList?: readonly string[];
+  enabled?: boolean;
+  onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
+  onCorrectionUndone?: (contextId: number) => void;
+}
+
 export class AutocorrectImeAdapter {
   private engine: AutocorrectEngine;
   private lastCorrection: CorrectionResult | null = null;
   private readonly dictionary: Dictionary;
+  private enabled: boolean;
+  private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
+  private readonly onCorrectionUndone?: AutocorrectImeAdapterOptions["onCorrectionUndone"];
 
   constructor(
     private readonly textAdapter: ImeTextAdapter,
-    options: {
-      dictionary?: Dictionary;
-      personalDictionary?: readonly string[];
-      ignoreList?: readonly string[];
-    } = {},
+    options: AutocorrectImeAdapterOptions = {},
   ) {
     this.dictionary = options.dictionary ?? createCoreEnglishDictionary();
+    this.enabled = options.enabled ?? true;
+    this.onCorrectionApplied = options.onCorrectionApplied;
+    this.onCorrectionUndone = options.onCorrectionUndone;
     this.engine = createAutocorrectEngine({
       dictionary: this.dictionary,
       personalDictionary: options.personalDictionary ?? [],
       ignoreList: options.ignoreList ?? [],
     });
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.lastCorrection = null;
+    }
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
   }
 
   updateWordLists(lists: AutocorrectWordLists): void {
@@ -53,7 +75,7 @@ export class AutocorrectImeAdapter {
   }
 
   async onCharacterTyped(contextId: number, textBeforeCursor: string, character: string): Promise<void> {
-    if (!isWordBoundary(character)) {
+    if (!this.enabled || !isWordBoundary(character)) {
       return;
     }
 
@@ -71,9 +93,10 @@ export class AutocorrectImeAdapter {
     await this.textAdapter.deleteSurroundingText(contextId, token.length);
     await this.textAdapter.commitText(contextId, result.corrected);
     this.lastCorrection = result;
+    this.onCorrectionApplied?.(contextId, result.original, result.corrected);
   }
 
-  async onBackspace(contextId: number): Promise<boolean> {
+  async undoLastCorrection(contextId: number): Promise<boolean> {
     if (this.lastCorrection?.kind !== "corrected") {
       return false;
     }
@@ -82,6 +105,11 @@ export class AutocorrectImeAdapter {
     await this.textAdapter.deleteSurroundingText(contextId, undo.deleteLength);
     await this.textAdapter.commitText(contextId, undo.restore);
     this.lastCorrection = null;
+    this.onCorrectionUndone?.(contextId);
     return true;
+  }
+
+  async onBackspace(contextId: number): Promise<boolean> {
+    return this.undoLastCorrection(contextId);
   }
 }

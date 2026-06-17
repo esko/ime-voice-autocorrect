@@ -33,6 +33,7 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
   });
 
   void app.hydrateSettingsFromCache();
+  app.refreshAllImeMenus();
 
   const heartbeat = new BridgeHeartbeat(app.bridge);
   heartbeat.start();

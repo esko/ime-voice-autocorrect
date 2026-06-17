@@ -44,6 +44,8 @@ describe("registerInputAssist backspace undo", () => {
             },
           },
           onBlur: { addListener: vi.fn() },
+          onMenuItemActivated: { addListener: vi.fn() },
+          onAssistiveWindowButtonClicked: { addListener: vi.fn() },
           onKeyEvent: {
             addListener: (listener: typeof keyListener) => {
               keyListener = listener;
@@ -51,6 +53,8 @@ describe("registerInputAssist backspace undo", () => {
           },
           commitText,
           deleteSurroundingText,
+          setMenuItems: vi.fn(),
+          setAssistiveWindowProperties: vi.fn(),
         },
       },
     } as never;

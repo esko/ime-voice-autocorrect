@@ -32,6 +32,22 @@ describe("AutocorrectImeAdapter", () => {
     expect(restored).toBe(true);
   });
 
+  it("skips corrections when disabled", async () => {
+    const commits: string[] = [];
+    const adapter = new AutocorrectImeAdapter(
+      {
+        deleteSurroundingText: async () => {},
+        commitText: async (_contextId, text) => {
+          commits.push(text);
+        },
+      },
+      { enabled: false },
+    );
+
+    await adapter.onCharacterTyped(1, "teh", " ");
+    expect(commits).toEqual([]);
+  });
+
   it("honors personal dictionary entries from settings updates", async () => {
     const commits: string[] = [];
     const adapter = new AutocorrectImeAdapter({

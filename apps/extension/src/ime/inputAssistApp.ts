@@ -8,6 +8,11 @@ import { PendingRecorderLauncher } from "../recorder/launcher.js";
 import type { RecorderToExtensionMessage } from "@input-assist/protocol";
 import { DEFAULT_DICTATION_CONFIG } from "@input-assist/dictation-core";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
+import type { ChromeImeUiAdapter } from "./chromeImeUiAdapter.js";
+import { AssistiveUndoController } from "./chromeImeUiAdapter.js";
+import { ImeMenuController } from "./imeMenuController.js";
+
+export const INPUT_ASSIST_ENGINE_IDS = ["input-assist-us", "input-assist-fi"] as const;
 
 export interface InputAssistAppOptions {
   allowedOrigin: string;
@@ -15,6 +20,7 @@ export interface InputAssistAppOptions {
   imeAdapter: ConstructorParameters<typeof DictationService>[0]["imeAdapter"];
   createSessionId?: () => string;
   settingsCache?: ExtensionSettingsCache;
+  imeUi?: ChromeImeUiAdapter;
 }
 
 export function createInputAssistApp(options: InputAssistAppOptions) {
@@ -22,6 +28,29 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   let activeContextType: string | undefined;
 
   const dictationHolder: { service: DictationService | null } = { service: null };
+  const assistiveUndo = options.imeUi ? new AssistiveUndoController(options.imeUi) : null;
+
+  let menuController: ImeMenuController | null = null;
+
+  const refreshImeMenu = (engineId: string) => {
+    menuController?.refresh(engineId);
+  };
+
+  const refreshAllImeMenus = () => {
+    for (const engineId of INPUT_ASSIST_ENGINE_IDS) {
+      refreshImeMenu(engineId);
+    }
+  };
+
+  const syncMenuStatus = () => {
+    menuController?.update({
+      recorderConnected: bridge.isConnected(),
+      dictationActive: dictation.isDictationActive(),
+      autocorrectEnabled: autocorrect.isEnabled(),
+      dictationEnabled: dictation.isDictationEnabled(),
+    });
+    refreshAllImeMenus();
+  };
 
   const autocorrect = new AutocorrectImeAdapter({
     deleteSurroundingText: async (contextId, length) => {
@@ -34,7 +63,30 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
         await options.imeAdapter.commitText(text);
       }
     },
+  }, {
+    onCorrectionApplied: (contextId, original, corrected) => {
+      void assistiveUndo?.showCorrection(contextId, original, corrected);
+    },
+    onCorrectionUndone: () => {
+      assistiveUndo?.hide();
+    },
   });
+
+  if (options.imeUi) {
+    menuController = new ImeMenuController(
+      options.imeUi,
+      {
+        recorderConnected: false,
+        dictationActive: false,
+        autocorrectEnabled: true,
+        dictationEnabled: true,
+      },
+      (state) => {
+        autocorrect.setEnabled(state.autocorrectEnabled);
+        dictation.setDictationEnabled(state.dictationEnabled);
+      },
+    );
+  }
 
   const bridge = new ExtensionBridgeServer({
     allowedOrigin: options.allowedOrigin,
@@ -54,6 +106,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     },
     onRecorderDisconnect: () => {
       dictationHolder.service?.onRecorderDisconnected();
+      syncMenuStatus();
     },
   });
 
@@ -79,11 +132,19 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
 
   const keyRouter = new KeyRouter({
     onDictationDown: () => {
-      void dictation.onDictationChordDown();
+      void dictation.onDictationChordDown().then(() => syncMenuStatus());
     },
-    onDictationUp: () => dictation.onDictationChordUp(),
-    onEscape: () => dictation.onEscape(),
+    onDictationUp: () => {
+      dictation.onDictationChordUp();
+      syncMenuStatus();
+    },
+    onEscape: () => {
+      dictation.onEscape();
+      syncMenuStatus();
+    },
   });
+
+  syncMenuStatus();
 
   return {
     contexts,
@@ -93,6 +154,11 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     keyRouter,
     autocorrect,
     textBuffers,
+    menuController,
+    assistiveUndo,
+    refreshImeMenu,
+    refreshAllImeMenus,
+    syncMenuStatus,
     async hydrateSettingsFromCache() {
       if (!options.settingsCache) {
         return;
@@ -123,6 +189,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       activeContextType = undefined;
     },
     async onCharacterTyped(contextId: number, character: string) {
+      assistiveUndo?.hide();
       const prior = textBuffers.get(contextId) ?? "";
       const buffer = prior + character;
       textBuffers.set(contextId, buffer);
