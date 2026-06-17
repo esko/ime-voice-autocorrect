@@ -10,6 +10,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@input-assist/autocorrect-core": "workspace:*",
     "@input-assist/dictation-core": "workspace:*",
     "@input-assist/protocol": "workspace:*"
   },

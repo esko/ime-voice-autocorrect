@@ -38,6 +38,9 @@ importers:
 
   apps/extension:
     dependencies:
+      '@input-assist/autocorrect-core':
+        specifier: workspace:*
+        version: link:../../packages/autocorrect-core
       '@input-assist/dictation-core':
         specifier: workspace:*
         version: link:../../packages/dictation-core
