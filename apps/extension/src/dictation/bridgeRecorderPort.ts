@@ -9,8 +9,12 @@ export class BridgeRecorderPort {
 
   constructor(
     private readonly bridge: ExtensionBridgeServer,
-    private readonly config: DictationSessionConfig,
+    private config: DictationSessionConfig,
   ) {}
+
+  updateSessionConfig(config: DictationSessionConfig): void {
+    this.config = config;
+  }
 
   async start(sessionId: string, handlers: StreamHandlers): Promise<void> {
     this.sessionId = sessionId;

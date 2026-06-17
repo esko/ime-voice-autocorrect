@@ -23,7 +23,7 @@ export class DictationSession {
   private readonly recorder: RecorderPort;
   private readonly status: RecorderStatusPort;
   private readonly logger: LoggerPort;
-  private readonly config: DictationConfig;
+  private config: DictationConfig;
   private readonly createSessionId: () => string;
   private readonly buffer = new TranscriptBuffer();
 
@@ -43,6 +43,10 @@ export class DictationSession {
 
   isRunning(): boolean {
     return this.running;
+  }
+
+  updateConfig(config: Partial<DictationConfig>): void {
+    this.config = { ...this.config, ...config };
   }
 
   onDictationChordDown(): void {

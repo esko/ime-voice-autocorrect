@@ -40,4 +40,49 @@ describe("BridgeRecorderPort", () => {
       true,
     );
   });
+
+  it("uses updated session config on the next start", async () => {
+    const sent: unknown[] = [];
+    const bridge = new ExtensionBridgeServer({
+      allowedOrigin: "isolated-app://abc",
+      onRecorderMessage: () => {},
+    });
+    const port = {
+      postMessage: (message: unknown) => sent.push(message),
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn() },
+    };
+    bridge.connect(port, "isolated-app://abc/");
+
+    const recorder = new BridgeRecorderPort(bridge, {
+      activationMode: "push-to-talk",
+      languageHint: "auto",
+      spokenPunctuation: true,
+      appendSpace: false,
+    });
+    recorder.updateSessionConfig({
+      activationMode: "toggle",
+      languageHint: "fi",
+      spokenPunctuation: false,
+      appendSpace: true,
+    });
+
+    await recorder.start("sess-1", {
+      onPartial: vi.fn(),
+      onCommitted: vi.fn(),
+      onError: vi.fn(),
+      onClose: vi.fn(),
+    });
+
+    expect(sent[0]).toEqual({
+      type: "START_SESSION",
+      sessionId: "sess-1",
+      config: {
+        activationMode: "toggle",
+        languageHint: "fi",
+        spokenPunctuation: false,
+        appendSpace: true,
+      },
+    });
+  });
 });

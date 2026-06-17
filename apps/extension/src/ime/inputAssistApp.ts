@@ -48,6 +48,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
           technicalDictionary: message.settings.technicalDictionary,
           ignoreList: message.settings.ignoreList,
         });
+        dictation.applySharedSettings(message.settings);
       }
       dictationHolder.service?.handleRecorderMessage(message);
     },
@@ -105,6 +106,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
         technicalDictionary: cached.technicalDictionary,
         ignoreList: cached.ignoreList,
       });
+      dictation.applySharedSettings(cached);
     },
     setActiveContextType(type: string | undefined) {
       activeContextType = type;

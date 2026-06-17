@@ -1,11 +1,15 @@
 import { DictationSession } from "@input-assist/dictation-core";
 import type { DictationConfig } from "@input-assist/dictation-core";
-import type { DictationSessionConfig, RecorderToExtensionMessage } from "@input-assist/protocol";
+import type { DictationSessionConfig, RecorderToExtensionMessage, SharedSettings } from "@input-assist/protocol";
 import type { ExtensionBridgeServer } from "../bridge/server.js";
 import type { RecorderLauncher } from "../recorder/launcher.js";
 import { BridgeRecorderPort } from "./bridgeRecorderPort.js";
 import type { ChromeImeTextAdapter } from "./imeTextPort.js";
 import { createImeTextPort } from "./imeTextPort.js";
+import {
+  sharedSettingsToDictationConfig,
+  sharedSettingsToSessionConfig,
+} from "../settings/applySharedSettings.js";
 
 export interface DictationServiceOptions {
   bridge: ExtensionBridgeServer;
@@ -23,11 +27,13 @@ export class DictationService {
   private readonly session: DictationSession;
   private readonly launcher: RecorderLauncher;
   private readonly isDictationAllowed: () => boolean;
+  private sessionConfig: DictationSessionConfig;
 
   constructor(options: DictationServiceOptions) {
     this.bridge = options.bridge;
     this.launcher = options.launcher;
     this.isDictationAllowed = options.isDictationAllowed;
+    this.sessionConfig = options.sessionConfig;
     this.bridgeRecorder = new BridgeRecorderPort(this.bridge, options.sessionConfig);
 
     this.session = new DictationSession({
@@ -38,6 +44,12 @@ export class DictationService {
       config: options.dictationConfig,
       createSessionId: options.createSessionId,
     });
+  }
+
+  applySharedSettings(settings: SharedSettings): void {
+    this.sessionConfig = sharedSettingsToSessionConfig(settings, this.sessionConfig);
+    this.bridgeRecorder.updateSessionConfig(this.sessionConfig);
+    this.session.updateConfig(sharedSettingsToDictationConfig(settings));
   }
 
   handleRecorderMessage(message: RecorderToExtensionMessage): void {

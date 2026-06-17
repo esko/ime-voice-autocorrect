@@ -244,4 +244,38 @@ describe("DictationSession", () => {
 
     expect(fakes.commits[0]).toMatch(/hello,\s+world\./);
   });
+
+  it("switches to toggle mode after updateConfig", async () => {
+    const fakes = createFakes();
+    let handlers: StreamHandlers | null = null;
+    const recorder: RecorderPort = {
+      start: vi.fn(async (_sessionId, nextHandlers: StreamHandlers) => {
+        handlers = nextHandlers;
+      }),
+      stop: vi.fn(async () => {}),
+      cancel: vi.fn(),
+    };
+
+    const session = new DictationSession({
+      ime: fakes.ime,
+      recorder,
+      status: fakes.status,
+      logger: fakes.logger,
+      config: {
+        activationMode: "push-to-talk",
+        spokenPunctuation: false,
+        appendSpace: false,
+      },
+    });
+
+    session.updateConfig({ activationMode: "toggle" });
+    session.onDictationChordDown();
+    session.onDictationChordUp();
+    handlers?.onCommitted("first");
+    session.onDictationChordDown();
+    session.onDictationChordUp();
+    await vi.waitUntil(() => fakes.commits.length === 1);
+
+    expect(fakes.commits).toEqual(["first"]);
+  });
 });
