@@ -91,7 +91,9 @@ describe("RealtimeSocket", () => {
     });
 
     await connectSocket(client, socket);
-    await client.stop();
+    const stopPromise = client.stop();
+    socket.emitMessage(JSON.stringify({ message_type: "committed_transcript", text: "" }));
+    await stopPromise;
     socket.emitClose();
     vi.advanceTimersByTime(5_000);
 
@@ -164,5 +166,56 @@ describe("RealtimeSocket", () => {
     await vi.advanceTimersByTimeAsync(10);
 
     expect(onFatal).toHaveBeenCalledOnce();
+  });
+
+  it("flush on stop sends silence with commit and waits for committed transcript", async () => {
+    vi.useFakeTimers();
+    const socket = createMockSocket();
+    const onCommitted = vi.fn();
+    const client = new RealtimeSocket({
+      fetchToken: async () => "token",
+      getLanguageHint: () => "auto",
+      createWebSocket: () => socket,
+      flushWaitMs: 1_500,
+      handlers: {
+        onSessionStarted: vi.fn(),
+        onPartial: vi.fn(),
+        onCommitted,
+        onError: vi.fn(),
+      },
+    });
+
+    await connectSocket(client, socket);
+    const stopPromise = client.stop();
+    expect(socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"commit":true'),
+    );
+
+    socket.emitMessage(JSON.stringify({ message_type: "committed_transcript", text: "final" }));
+    await stopPromise;
+
+    expect(onCommitted).toHaveBeenCalledWith("final");
+  });
+
+  it("stop resolves after flush timeout when no committed transcript arrives", async () => {
+    vi.useFakeTimers();
+    const socket = createMockSocket();
+    const client = new RealtimeSocket({
+      fetchToken: async () => "token",
+      getLanguageHint: () => "auto",
+      createWebSocket: () => socket,
+      flushWaitMs: 1_500,
+      handlers: {
+        onSessionStarted: vi.fn(),
+        onPartial: vi.fn(),
+        onCommitted: vi.fn(),
+        onError: vi.fn(),
+      },
+    });
+
+    await connectSocket(client, socket);
+    const stopPromise = client.stop();
+    await vi.advanceTimersByTimeAsync(1_500);
+    await stopPromise;
   });
 });

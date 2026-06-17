@@ -1,7 +1,10 @@
 import { decodeRealtimeMessage, reconnectDelay } from "./realtimeProtocol.js";
 import { buildRealtimeWebSocketUrl } from "./createRealtimeSocket.js";
 import type { LanguageHint } from "./createRealtimeSocket.js";
+import { SAMPLE_RATE } from "../audio/audioPipeline.js";
 import { float32ToPcm16, pcm16ToBase64 } from "./pcmUtils.js";
+
+export const FLUSH_WAIT_MS = 1_500;
 
 export interface RealtimeSocketHandlers {
   onSessionStarted(): void;
@@ -18,6 +21,7 @@ export interface RealtimeSocketOptions {
   handlers: RealtimeSocketHandlers;
   setTimer?: typeof setTimeout;
   clearTimer?: typeof clearTimeout;
+  flushWaitMs?: number;
 }
 
 export interface WebSocketLike {
@@ -32,6 +36,10 @@ export interface WebSocketLike {
 
 const OPEN = 1;
 
+function silenceFlushBase64(): string {
+  return pcm16ToBase64(new Int16Array(SAMPLE_RATE / 10));
+}
+
 export class RealtimeSocket {
   private readonly createWebSocket: RealtimeSocketOptions["createWebSocket"];
   private readonly fetchToken: RealtimeSocketOptions["fetchToken"];
@@ -39,10 +47,12 @@ export class RealtimeSocket {
   private readonly handlers: RealtimeSocketHandlers;
   private readonly setTimer: typeof setTimeout;
   private readonly clearTimer: typeof clearTimeout;
+  private readonly flushWaitMs: number;
   private socket: WebSocketLike | null = null;
   private sessionReady = false;
   private userStopped = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private flushResolve: (() => void) | null = null;
 
   constructor(options: RealtimeSocketOptions) {
     this.createWebSocket = options.createWebSocket;
@@ -51,6 +61,7 @@ export class RealtimeSocket {
     this.handlers = options.handlers;
     this.setTimer = options.setTimer ?? setTimeout;
     this.clearTimer = options.clearTimer ?? clearTimeout;
+    this.flushWaitMs = options.flushWaitMs ?? FLUSH_WAIT_MS;
   }
 
   async connect(): Promise<void> {
@@ -86,6 +97,7 @@ export class RealtimeSocket {
             break;
           case "committed":
             this.handlers.onCommitted(decoded.text);
+            this.resolveFlush();
             break;
           case "error":
             if (!started) {
@@ -117,6 +129,14 @@ export class RealtimeSocket {
         this.scheduleReconnect(0);
       });
     });
+  }
+
+  private resolveFlush(): void {
+    if (this.flushResolve) {
+      const resolve = this.flushResolve;
+      this.flushResolve = null;
+      resolve();
+    }
   }
 
   private scheduleReconnect(attempt: number): void {
@@ -162,11 +182,39 @@ export class RealtimeSocket {
       this.clearTimer(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    this.socket?.send(JSON.stringify({ message_type: "input_audio_chunk", commit: true }));
+    await this.flush();
+  }
+
+  private async flush(): Promise<void> {
+    if (!this.sessionReady || !this.socket || this.socket.readyState !== OPEN) {
+      return;
+    }
+
+    try {
+      this.socket.send(
+        JSON.stringify({
+          message_type: "input_audio_chunk",
+          audio_base_64: silenceFlushBase64(),
+          commit: true,
+        }),
+      );
+      await new Promise<void>((resolve) => {
+        this.flushResolve = resolve;
+        this.setTimer(() => {
+          if (this.flushResolve) {
+            this.flushResolve = null;
+            resolve();
+          }
+        }, this.flushWaitMs);
+      });
+    } catch {
+      // ignore send-after-close
+    }
   }
 
   cancel(): void {
     this.userStopped = true;
+    this.resolveFlush();
     if (this.reconnectTimer) {
       this.clearTimer(this.reconnectTimer);
       this.reconnectTimer = null;
