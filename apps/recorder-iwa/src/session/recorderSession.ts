@@ -41,9 +41,12 @@ export class RecorderSessionController {
         onCommitted: (text) => {
           this.appendCommitted(text);
         },
-        onError: (message) => {
-          this.handlers.onError(message);
-        },
+      onError: (message) => {
+        this.handlers.onError(message);
+      },
+      onFatal: (message) => {
+        this.handlers.onError(message);
+      },
       },
       config,
     );
