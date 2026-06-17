@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRecorderApp } from "./app.js";
+import { DEFAULT_RECORDER_SETTINGS } from "./settings/store.js";
 
 describe("createRecorderApp", () => {
   it("handles start and stop session commands from the extension", async () => {
@@ -135,5 +136,51 @@ describe("createRecorderApp", () => {
     expect(
       outbound.some((message) => (message as { type: string }).type === "PARTIAL_TRANSCRIPT"),
     ).toBe(true);
+  });
+
+  it("merges SETTINGS_UPDATED without exposing api keys", async () => {
+    const storage = {
+      data: JSON.stringify({ ...DEFAULT_RECORDER_SETTINGS, elevenLabsApiKey: "sk_secret" }),
+      getItem() {
+        return this.data;
+      },
+      setItem(_key: string, value: string) {
+        this.data = value;
+      },
+    };
+
+    const inbound: Array<(message: unknown) => void> = [];
+    const port = {
+      postMessage: () => {},
+      onMessage: {
+        addListener: (listener: (message: unknown) => void) => inbound.push(listener),
+        removeListener: vi.fn(),
+      },
+    };
+
+    const app = createRecorderApp({
+      extensionId: "ext-1",
+      createPort: () => port,
+      socketFactory: () => ({
+        connect: async () => {},
+        sendAudio: () => {},
+        stop: async () => {},
+        cancel: () => {},
+        shouldReconnect: () => false,
+      }),
+      storage,
+    });
+
+    app.bridgeClient.connectBridge();
+
+    for (const listener of inbound) {
+      listener({
+        type: "SETTINGS_UPDATED",
+        settings: { activationMode: "toggle" },
+      });
+    }
+
+    expect(app.settings.load().activationMode).toBe("toggle");
+    expect(app.settings.load().elevenLabsApiKey).toBe("sk_secret");
   });
 });

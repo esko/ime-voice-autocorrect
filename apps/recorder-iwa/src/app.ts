@@ -4,6 +4,7 @@ import type { RecorderBridgePort } from "./bridge/server.js";
 import { RecorderBridgeServer } from "./bridge/server.js";
 import { RecorderSessionController } from "./session/recorderSession.js";
 import { SettingsStore, DEFAULT_RECORDER_SETTINGS } from "./settings/store.js";
+import { mergeSharedSettingsIntoRecorder } from "./settings/publishSnapshot.js";
 import { RecorderUiController } from "./ui/recorderUi.js";
 
 export function createRecorderApp(options: {
@@ -93,6 +94,11 @@ export function createRecorderApp(options: {
           sessionId: message.sessionId,
           reason: "cancelled",
         });
+      }
+
+      if (message.type === "SETTINGS_UPDATED") {
+        const merged = mergeSharedSettingsIntoRecorder(settings.load(), message.settings);
+        settings.save(merged);
       }
     },
   });
