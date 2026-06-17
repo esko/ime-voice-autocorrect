@@ -49,7 +49,7 @@ The product must work across ChromeOS applications through the ChromeOS input me
 - Ignore list.
 - Domain/technical word list.
 - Confidence thresholds.
-- No autocorrect in unsafe field types.
+- Dictation is blocked in unsafe field types; autocorrect continues to run there.
 
 ### Dictation
 
@@ -58,7 +58,7 @@ The product must work across ChromeOS applications through the ChromeOS input me
 - Partial/final transcript state machine.
 - Insert final transcript automatically when possible.
 - Transcript cleanup before commit.
-- English autocorrect can run on English dictation output.
+- Dictated text is not run through the autocorrect engine (typing only).
 - Finnish dictation may insert raw transcript without Finnish spell correction.
 - Reuse the dictation architecture from `esko/tabby-voice-dictation`, adapted from terminal delivery to IME delivery.
 

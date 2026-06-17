@@ -23,7 +23,7 @@
 - Never commit text if IME context is invalid.
 - Never commit text after blur.
 - Never silently switch to another target context.
-- Disable assist in password fields.
+- Disable dictation in password fields; autocorrect may continue.
 - Use conservative behavior in URL/email/number fields.
 
 ## Network
