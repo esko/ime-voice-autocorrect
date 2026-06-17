@@ -1,4 +1,4 @@
-import type { RealtimeSocket } from "./asr/realtimeSocket.js";
+import type { AudioPipelineFactory, RealtimeSocketFactory } from "./session/recorderSession.js";
 import { RecorderBridgeClient } from "./bridge/client.js";
 import type { RecorderBridgePort } from "./bridge/server.js";
 import { RecorderBridgeServer } from "./bridge/server.js";
@@ -9,7 +9,8 @@ import { RecorderUiController } from "./ui/recorderUi.js";
 export function createRecorderApp(options: {
   extensionId: string;
   createPort: () => RecorderBridgePort;
-  socketFactory: () => RealtimeSocket;
+  socketFactory: RealtimeSocketFactory;
+  audioPipelineFactory?: AudioPipelineFactory;
   storage: ConstructorParameters<typeof SettingsStore>[0];
 }) {
   const settings = new SettingsStore(options.storage);
@@ -21,38 +22,57 @@ export function createRecorderApp(options: {
     onExtensionMessage: async (message) => {
       if (message.type === "START_SESSION") {
         ui.setListening();
-        sessionController = new RecorderSessionController(options.socketFactory, {
-          onPartial: (text) => {
-            ui.setPartial(text);
-            bridgeServer.send({
-              type: "PARTIAL_TRANSCRIPT",
-              sessionId: message.sessionId,
-              text,
-            });
+        sessionController = new RecorderSessionController(
+          options.socketFactory,
+          {
+            onPartial: (text) => {
+              ui.setPartial(text);
+              bridgeServer.send({
+                type: "PARTIAL_TRANSCRIPT",
+                sessionId: message.sessionId,
+                text,
+              });
+            },
+            onFinal: (text) => {
+              bridgeServer.send({
+                type: "FINAL_TRANSCRIPT",
+                sessionId: message.sessionId,
+                text,
+              });
+            },
+            onError: (errorMessage) => {
+              ui.setError(errorMessage);
+              bridgeServer.send({
+                type: "SESSION_ERROR",
+                sessionId: message.sessionId,
+                message: errorMessage,
+                recoverable: false,
+              });
+            },
+            onAudioLevel: (rms) => {
+              ui.setLevel(rms);
+              bridgeServer.send({
+                type: "AUDIO_LEVEL",
+                sessionId: message.sessionId,
+                rms,
+              });
+            },
           },
-          onFinal: (text) => {
-            bridgeServer.send({
-              type: "FINAL_TRANSCRIPT",
-              sessionId: message.sessionId,
-              text,
-            });
+          options.audioPipelineFactory,
+          () => {
+            const recorderSettings = settings.load();
+            return {
+              noiseGate: recorderSettings.elevenLabsNoiseGate,
+              inputDeviceId: recorderSettings.elevenLabsInputDeviceId || undefined,
+            };
           },
-          onError: (errorMessage) => {
-            ui.setError(errorMessage);
-            bridgeServer.send({
-              type: "SESSION_ERROR",
-              sessionId: message.sessionId,
-              message: errorMessage,
-              recoverable: false,
-            });
-          },
-        });
+        );
         await sessionController.startSession(message.sessionId, message.config);
         bridgeServer.send({ type: "SESSION_STARTED", sessionId: message.sessionId });
       }
 
       if (message.type === "STOP_SESSION" && sessionController) {
-        sessionController.stopSession();
+        await sessionController.stopSession();
         ui.setIdle();
         bridgeServer.send({
           type: "SESSION_CLOSED",

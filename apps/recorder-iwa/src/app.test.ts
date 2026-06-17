@@ -13,17 +13,21 @@ describe("createRecorderApp", () => {
       },
     };
 
+    let socketHandlers: import("./asr/realtimeSocket.js").RealtimeSocketHandlers | null = null;
+
     const app = createRecorderApp({
       extensionId: "ext-1",
       createPort: () => port,
-      socketFactory: () =>
-        ({
+      socketFactory: (handlers, _config) => {
+        socketHandlers = handlers;
+        return {
           connect: async () => {},
           sendAudio: () => {},
           stop: async () => {},
           cancel: () => {},
           shouldReconnect: () => false,
-        }) as never,
+        };
+      },
       storage: {
         getItem: () => null,
         setItem: () => {},
@@ -55,11 +59,13 @@ describe("createRecorderApp", () => {
 
     const controller = app.getSessionController();
     expect(controller).not.toBeNull();
-    controller?.appendCommitted("hello world");
+    socketHandlers?.onCommitted("hello world");
 
     for (const listener of inbound) {
       listener({ type: "STOP_SESSION", sessionId: "sess-1" });
     }
+
+    await Promise.resolve();
 
     expect(
       outbound.some((message) => (message as { type: string }).type === "FINAL_TRANSCRIPT"),
