@@ -4,7 +4,7 @@ import type { ExtensionBridgeServer } from "../bridge/server.js";
 
 export class BridgeRecorderPort {
   private handlers: StreamHandlers | null = null;
-  private stopResolve: ((text: string) => void) | null = null;
+  private stopResolve: (() => void) | null = null;
   private sessionId: string | null = null;
 
   constructor(
@@ -26,12 +26,10 @@ export class BridgeRecorderPort {
     if (!this.sessionId) {
       return;
     }
-    const finalText = await new Promise<string>((resolve) => {
+    await new Promise<void>((resolve) => {
       this.stopResolve = resolve;
       this.bridge.stopSession(this.sessionId!);
     });
-    this.handlers?.onCommitted(finalText);
-    this.stopResolve = null;
   }
 
   cancel(): void {
@@ -47,13 +45,15 @@ export class BridgeRecorderPort {
     this.handlers?.onPartial(text);
   }
 
-  onFinalTranscript(text: string): void {
-    if (this.stopResolve) {
-      this.stopResolve(text);
-      this.stopResolve = null;
-      return;
-    }
+  onCommittedTranscript(text: string): void {
     this.handlers?.onCommitted(text);
+  }
+
+  onSessionClosed(): void {
+    if (this.stopResolve) {
+      this.stopResolve();
+      this.stopResolve = null;
+    }
   }
 
   onError(message: string): void {

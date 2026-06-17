@@ -69,7 +69,7 @@ describe("createRecorderApp", () => {
     await Promise.resolve();
 
     expect(
-      outbound.some((message) => (message as { type: string }).type === "FINAL_TRANSCRIPT"),
+      outbound.some((message) => (message as { type: string }).type === "COMMITTED_TRANSCRIPT"),
     ).toBe(true);
   });
 

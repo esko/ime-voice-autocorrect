@@ -9,7 +9,7 @@ describe("session id guards", () => {
   it("detects session-scoped recorder messages", () => {
     expect(
       isSessionScopedRecorderMessage({
-        type: "FINAL_TRANSCRIPT",
+        type: "COMMITTED_TRANSCRIPT",
         sessionId: "a",
         text: "hi",
       }),
@@ -27,7 +27,7 @@ describe("session id guards", () => {
   it("matches session ids for active session", () => {
     expect(
       isSessionIdMatch(
-        { type: "FINAL_TRANSCRIPT", sessionId: "sess-1", text: "hi" },
+        { type: "COMMITTED_TRANSCRIPT", sessionId: "sess-1", text: "hi" },
         "sess-1",
       ),
     ).toBe(true);

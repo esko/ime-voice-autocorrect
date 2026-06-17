@@ -62,8 +62,8 @@ export const partialTranscriptMessageSchema = z.object({
   stable: z.boolean().optional(),
 });
 
-export const finalTranscriptMessageSchema = z.object({
-  type: z.literal("FINAL_TRANSCRIPT"),
+export const committedTranscriptMessageSchema = z.object({
+  type: z.literal("COMMITTED_TRANSCRIPT"),
   sessionId: sessionIdSchema,
   text: z.string(),
 });
@@ -128,7 +128,7 @@ export const recorderToExtensionMessageSchema = z.discriminatedUnion("type", [
   recorderReadyMessageSchema,
   sessionStartedMessageSchema,
   partialTranscriptMessageSchema,
-  finalTranscriptMessageSchema,
+  committedTranscriptMessageSchema,
   audioLevelMessageSchema,
   sessionErrorMessageSchema,
   sessionClosedMessageSchema,

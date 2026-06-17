@@ -70,9 +70,14 @@ describe("end-to-end dictation bridge", () => {
     await app.dictation.onDictationChordDown();
     app.dictation.onDictationChordUp();
     port.emit({
-      type: "FINAL_TRANSCRIPT",
+      type: "COMMITTED_TRANSCRIPT",
       sessionId: "sess-1",
       text: "hello from recorder",
+    });
+    port.emit({
+      type: "SESSION_CLOSED",
+      sessionId: "sess-1",
+      reason: "stopped",
     });
     await vi.waitUntil(() => commits.length === 1);
 

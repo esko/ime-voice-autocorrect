@@ -32,7 +32,8 @@ describe("BridgeRecorderPort", () => {
     });
 
     const stopPromise = recorder.stop();
-    recorder.onFinalTranscript("hello from recorder");
+    recorder.onCommittedTranscript("hello from recorder");
+    recorder.onSessionClosed();
     await stopPromise;
 
     expect(committed).toEqual(["hello from recorder"]);

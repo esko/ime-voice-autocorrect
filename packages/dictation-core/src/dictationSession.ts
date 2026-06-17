@@ -118,9 +118,11 @@ export class DictationSession {
   private createHandlers(): StreamHandlers {
     return {
       onPartial: (text) => {
+        if (!this.running) return;
         this.status.setPartial(formatPartialTranscript(text, this.config));
       },
       onCommitted: (text) => {
+        if (!this.running) return;
         if (detectScratchThat(text)) {
           this.buffer.scratchThat();
           this.status.setPartial("");
@@ -130,6 +132,7 @@ export class DictationSession {
         this.status.setPartial("");
       },
       onError: (message) => {
+        if (!this.running) return;
         this.handleError(new Error(message));
       },
       onClose: () => {

@@ -54,15 +54,16 @@ describe("parseRecorderToExtension", () => {
     });
   });
 
-  it("parses FINAL_TRANSCRIPT", () => {
+  it("parses COMMITTED_TRANSCRIPT", () => {
     const message = parseRecorderToExtension({
-      type: "FINAL_TRANSCRIPT",
+      type: "COMMITTED_TRANSCRIPT",
       sessionId: "sess-1",
       text: "hello world",
     });
-
-    expect(message.type).toBe("FINAL_TRANSCRIPT");
+    expect(message.type).toBe("COMMITTED_TRANSCRIPT");
+    expect(message.text).toBe("hello world");
   });
+
 
   it("parses AUDIO_LEVEL", () => {
     const message = parseRecorderToExtension({
@@ -127,7 +128,7 @@ describe("parseRecorderToExtension", () => {
   it("rejects session messages with missing session id", () => {
     expect(() =>
       parseRecorderToExtension({
-        type: "FINAL_TRANSCRIPT",
+        type: "COMMITTED_TRANSCRIPT",
         sessionId: "",
         text: "hello",
       }),

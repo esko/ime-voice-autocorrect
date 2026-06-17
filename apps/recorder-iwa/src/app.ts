@@ -36,9 +36,9 @@ export function createRecorderApp(options: {
                 text,
               });
             },
-            onFinal: (text) => {
+            onCommitted: (text) => {
               bridgeServer.send({
-                type: "FINAL_TRANSCRIPT",
+                type: "COMMITTED_TRANSCRIPT",
                 sessionId: message.sessionId,
                 text,
               });

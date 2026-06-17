@@ -10,8 +10,8 @@ const sessionConfig = {
 };
 
 describe("RecorderSessionController", () => {
-  it("accumulates committed chunks and returns one final transcript on stop", async () => {
-    const finals: string[] = [];
+  it("forwards committed chunks immediately", async () => {
+    const commits: string[] = [];
     let socketHandlers: RealtimeSocketHandlers | null = null;
     const controller = new RecorderSessionController(
       (handlers) => {
@@ -28,7 +28,7 @@ describe("RecorderSessionController", () => {
       },
       {
         onPartial: () => {},
-        onFinal: (text) => finals.push(text),
+        onCommitted: (text) => commits.push(text),
         onError: () => {},
       },
     );
@@ -36,9 +36,8 @@ describe("RecorderSessionController", () => {
     await controller.startSession("sess-1", sessionConfig);
     socketHandlers?.onCommitted("hello");
     socketHandlers?.onCommitted("world");
-    await controller.stopSession();
 
-    expect(finals).toEqual(["hello world"]);
+    expect(commits).toEqual(["hello", "world"]);
   });
 
   it("forwards partial transcripts from the asr socket", async () => {
@@ -57,7 +56,7 @@ describe("RecorderSessionController", () => {
       },
       {
         onPartial: (text) => partials.push(text),
-        onFinal: () => {},
+        onCommitted: () => {},
         onError: () => {},
       },
     );
@@ -98,7 +97,7 @@ describe("RecorderSessionController", () => {
       }),
       {
         onPartial: () => {},
-        onFinal: () => {},
+        onCommitted: () => {},
         onError: () => {},
         onAudioLevel: () => {},
       },

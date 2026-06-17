@@ -72,8 +72,11 @@ export class DictationService {
     if (message.type === "PARTIAL_TRANSCRIPT") {
       this.bridgeRecorder.onPartial(message.text);
     }
-    if (message.type === "FINAL_TRANSCRIPT") {
-      this.bridgeRecorder.onFinalTranscript(message.text);
+    if (message.type === "COMMITTED_TRANSCRIPT") {
+      this.bridgeRecorder.onCommittedTranscript(message.text);
+    }
+    if (message.type === "SESSION_CLOSED") {
+      this.bridgeRecorder.onSessionClosed();
     }
     if (message.type === "SESSION_ERROR") {
       this.bridgeRecorder.onError(message.message);

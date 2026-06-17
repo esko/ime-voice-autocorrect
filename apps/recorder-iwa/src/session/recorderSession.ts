@@ -5,7 +5,7 @@ import type { RealtimeSocket, RealtimeSocketHandlers } from "../asr/realtimeSock
 
 export interface RecorderSessionHandlers {
   onPartial(text: string): void;
-  onFinal(text: string): void;
+  onCommitted(text: string): void;
   onError(message: string): void;
   onAudioLevel?(level: number): void;
 }
@@ -18,7 +18,6 @@ export type AudioPipelineFactory = () => AudioPipeline;
 
 export class RecorderSessionController {
   private activeSessionId: string | null = null;
-  private transcript = "";
   private socket: RealtimeSocket | null = null;
   private audioPipeline: AudioPipeline | null = null;
 
@@ -31,7 +30,6 @@ export class RecorderSessionController {
 
   async startSession(sessionId: string, config: DictationSessionConfig): Promise<void> {
     this.activeSessionId = sessionId;
-    this.transcript = "";
     this.socket = this.socketFactory(
       {
         onSessionStarted: () => {},
@@ -39,7 +37,7 @@ export class RecorderSessionController {
           this.handlers.onPartial(text);
         },
         onCommitted: (text) => {
-          this.appendCommitted(text);
+          this.handlers.onCommitted(text);
         },
       onError: (message) => {
         this.handlers.onError(message);
@@ -66,24 +64,16 @@ export class RecorderSessionController {
     }
   }
 
-  appendCommitted(text: string): void {
-    if (text.trim()) {
-      this.transcript = this.transcript ? `${this.transcript} ${text.trim()}` : text.trim();
-    }
-  }
 
-  async stopSession(): Promise<string> {
+
+  async stopSession(): Promise<void> {
     this.audioPipeline?.setMuted(true);
     await this.socket?.stop();
     this.audioPipeline?.stop();
     this.audioPipeline = null;
 
-    const finalText = this.transcript;
     this.activeSessionId = null;
-    this.transcript = "";
     this.socket = null;
-    this.handlers.onFinal(finalText);
-    return finalText;
   }
 
   cancelSession(): void {
@@ -91,7 +81,6 @@ export class RecorderSessionController {
     this.audioPipeline = null;
     this.socket?.cancel();
     this.activeSessionId = null;
-    this.transcript = "";
     this.socket = null;
   }
 

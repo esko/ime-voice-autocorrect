@@ -278,4 +278,78 @@ describe("DictationSession", () => {
 
     expect(fakes.commits).toEqual(["first"]);
   });
+
+  it("DictationSession.reset() clears transcript state", async () => {
+    const fakes = createFakes();
+    let handlers: StreamHandlers | null = null;
+    const recorder: RecorderPort = {
+      start: vi.fn(async (_sessionId, nextHandlers: StreamHandlers) => {
+        handlers = nextHandlers;
+      }),
+      stop: vi.fn(async () => {}),
+      cancel: vi.fn(),
+    };
+
+    const session = new DictationSession({
+      ime: fakes.ime,
+      recorder,
+      status: fakes.status,
+      logger: fakes.logger,
+      config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+    });
+
+    session.onDictationChordDown();
+    await new Promise(r => setTimeout(r, 0)); // wait for start()
+    if (!handlers) throw new Error("handlers not set");
+    handlers.onCommitted("first");
+    session.cancel(); // calls reset internally
+    session.onDictationChordUp(); // release the key
+    
+    session.onDictationChordDown();
+    await new Promise(r => setTimeout(r, 0)); // wait for start()
+    if (!handlers) throw new Error("handlers not set 2");
+    handlers.onCommitted("second");
+    session.onDictationChordUp();
+    await vi.waitUntil(() => fakes.commits.length === 1);
+    
+    expect(fakes.commits).toEqual(["second"]);
+  });
+
+  it("late committed events after cancel are ignored", async () => {
+    const fakes = createFakes();
+    let handlers: StreamHandlers | null = null;
+    const recorder: RecorderPort = {
+      start: vi.fn(async (_sessionId, nextHandlers: StreamHandlers) => {
+        handlers = nextHandlers;
+      }),
+      stop: vi.fn(async () => {}),
+      cancel: vi.fn(),
+    };
+
+    const session = new DictationSession({
+      ime: fakes.ime,
+      recorder,
+      status: fakes.status,
+      logger: fakes.logger,
+      config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+    });
+
+    session.onDictationChordDown();
+    await new Promise(r => setTimeout(r, 0)); // wait for start()
+    if (!handlers) throw new Error("handlers not set");
+    const oldHandlers = handlers;
+    oldHandlers.onCommitted("first");
+    session.cancel(); // running is now false
+    oldHandlers.onCommitted("late"); // should not be buffered
+    session.onDictationChordUp(); // release the key
+    
+    session.onDictationChordDown();
+    await new Promise(r => setTimeout(r, 0)); // wait for start()
+    if (!handlers) throw new Error("handlers not set 2");
+    handlers.onCommitted("second");
+    session.onDictationChordUp();
+    await vi.waitUntil(() => fakes.commits.length === 1);
+
+    expect(fakes.commits).toEqual(["second"]);
+  });
 });

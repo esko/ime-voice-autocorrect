@@ -8,7 +8,7 @@ import type {
 const RECORDER_SESSION_TYPES = new Set<RecorderToExtensionMessage["type"]>([
   "SESSION_STARTED",
   "PARTIAL_TRANSCRIPT",
-  "FINAL_TRANSCRIPT",
+  "COMMITTED_TRANSCRIPT",
   "AUDIO_LEVEL",
   "SESSION_ERROR",
   "SESSION_CLOSED",
