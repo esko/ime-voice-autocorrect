@@ -1,6 +1,6 @@
 import {
   createAutocorrectEngine,
-  createTestDictionary,
+  createCoreEnglishDictionary,
   extractLastWord,
   isWordBoundary,
   type AutocorrectEngine,
@@ -18,7 +18,9 @@ export class AutocorrectImeAdapter {
 
   constructor(
     private readonly textAdapter: ImeTextAdapter,
-    engine: AutocorrectEngine = createAutocorrectEngine({ dictionary: createTestDictionary() }),
+    engine: AutocorrectEngine = createAutocorrectEngine({
+      dictionary: createCoreEnglishDictionary(),
+    }),
   ) {
     this.engine = engine;
   }
