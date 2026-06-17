@@ -6,6 +6,8 @@ export function bindRecorderUi(
     status: HTMLElement;
     partial: HTMLElement;
     levelBar: HTMLElement;
+    surface?: HTMLElement;
+    extrasButton?: HTMLButtonElement;
   },
 ): () => void {
   const render = () => {
@@ -18,6 +20,12 @@ export function bindRecorderUi(
           : "Idle";
     elements.partial.textContent = model.partialText;
     elements.levelBar.style.width = `${Math.min(100, Math.round(model.level * 100))}%`;
+    if (elements.surface) {
+      elements.surface.classList.toggle("active", model.state === "listening");
+    }
+    if (elements.extrasButton) {
+      elements.extrasButton.hidden = !ui.isInteractive();
+    }
   };
 
   render();
