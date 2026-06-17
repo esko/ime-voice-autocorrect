@@ -1,6 +1,8 @@
 import { SettingsStore } from "./settings/store.js";
 import { mountSettingsPage } from "./settings/settingsPage.js";
 import { publishSettingsSnapshot } from "./settings/publishSnapshot.js";
+import { mountDiagnosticsPanel } from "./diagnostics/diagnosticsPanel.js";
+import { PROTOCOL_VERSION } from "@input-assist/protocol";
 
 if (typeof document !== "undefined") {
   const form = document.getElementById("settings-form");
@@ -12,6 +14,9 @@ if (typeof document !== "undefined") {
   const technicalDictionary = document.getElementById("technical-dictionary");
   const ignoreList = document.getElementById("ignore-list");
   const saveStatus = document.getElementById("save-status");
+  const bridgeStatus = document.getElementById("bridge-status");
+  const copyDebugBundle = document.getElementById("copy-debug-bundle");
+  const debugStatus = document.getElementById("debug-status");
   const extensionId = new URLSearchParams(globalThis.location?.search ?? "").get("extensionId") ?? "";
 
   if (
@@ -23,10 +28,36 @@ if (typeof document !== "undefined") {
     personalDictionary instanceof HTMLTextAreaElement &&
     technicalDictionary instanceof HTMLTextAreaElement &&
     ignoreList instanceof HTMLTextAreaElement &&
-    saveStatus instanceof HTMLElement
+    saveStatus instanceof HTMLElement &&
+    bridgeStatus instanceof HTMLElement &&
+    copyDebugBundle instanceof HTMLButtonElement &&
+    debugStatus instanceof HTMLElement
   ) {
     const store = new SettingsStore(localStorage);
     const port = extensionId && typeof chrome !== "undefined" ? chrome.runtime.connect(extensionId) : null;
+
+    if (port) {
+      bridgeStatus.textContent = "Bridge: connected";
+      port.onDisconnect.addListener(() => {
+        bridgeStatus.textContent = "Bridge: disconnected";
+      });
+    } else {
+      bridgeStatus.textContent = "Bridge: unavailable";
+    }
+
+    mountDiagnosticsPanel(copyDebugBundle, debugStatus, {
+      getState: () => ({
+        bridgeConnected: port !== null,
+        protocolVersion: PROTOCOL_VERSION,
+        lastAsrError: null,
+        micLevel: null,
+        settings: store.toSharedSnapshot(store.load()),
+        apiKey: store.load().elevenLabsApiKey || undefined,
+      }),
+      copyText: async (text) => {
+        await navigator.clipboard.writeText(text);
+      },
+    });
 
     mountSettingsPage(
       store,
