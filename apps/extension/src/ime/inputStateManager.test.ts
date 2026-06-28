@@ -66,12 +66,22 @@ describe("InputStateManager", () => {
   it("surrounding text update refreshes token state", () => {
     manager.onFocus(createContext(1));
     manager.onSurroundingTextChanged(1, { text: "world ", focus: 6, anchor: 6 });
-    
+
     // Wait, the surrounding text might end with a space, meaning current token is empty
     expect(manager.getPreviousToken()?.text).toBe("");
-    
+
     manager.onSurroundingTextChanged(1, { text: "hello", focus: 5, anchor: 5 });
     expect(manager.getPreviousToken()?.text).toBe("hello");
+  });
+
+  it("tracks the previous word for context scoring", () => {
+    manager.onFocus(createContext(1));
+    manager.onSurroundingTextChanged(1, { text: "in teh", focus: 6, anchor: 6 });
+    expect(manager.getPreviousToken()?.text).toBe("teh");
+    expect(manager.getPreviousWord()).toBe("in");
+
+    manager.onBlur(1);
+    expect(manager.getPreviousWord()).toBe("");
   });
 
   it("password fields disable autocorrect", () => {

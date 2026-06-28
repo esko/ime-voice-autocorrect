@@ -1,8 +1,14 @@
 import type { Dictionary } from "./dictionary.js";
 import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
+import type { BigramModel } from "./context.js";
 import { decideCorrection, type CorrectionDecision } from "./decision.js";
 import { SymSpellIndex } from "./symspell.js";
+
+/** Per-call context for a decision (e.g. the previous word for reranking). */
+export interface DecideContext {
+  previousWord?: string;
+}
 
 export type CorrectionResult =
   | { kind: "unchanged"; original: string }
@@ -15,7 +21,7 @@ export type CorrectionResult =
 
 export interface AutocorrectEngine {
   /** Full decision: replace, suggest candidates, or do nothing. */
-  decide(token: string): CorrectionDecision;
+  decide(token: string, context?: DecideContext): CorrectionDecision;
   /** Convenience wrapper for the auto-replace path only. */
   correctToken(token: string): CorrectionResult;
 }
@@ -26,12 +32,20 @@ export interface AutocorrectEngineOptions {
   ignoreList?: readonly string[];
   userModel?: UserModel;
   validator?: Validator;
+  bigrams?: BigramModel;
 }
 
 export function createAutocorrectEngine(
   options: AutocorrectEngineOptions,
 ): AutocorrectEngine {
-  const { dictionary, personalDictionary = [], ignoreList = [], userModel, validator } = options;
+  const {
+    dictionary,
+    personalDictionary = [],
+    ignoreList = [],
+    userModel,
+    validator,
+    bigrams,
+  } = options;
 
   let index = SymSpellIndex.build(dictionary.entries, {
     maxEditDistance: dictionary.maxEditDistance,
@@ -46,12 +60,17 @@ export function createAutocorrectEngine(
 
   const ignored = new Set(ignoreList);
 
+  const baseOptions = { ignored, model: userModel, validator, bigrams };
+
   return {
-    decide(token) {
-      return decideCorrection(token, index, { ignored, model: userModel, validator });
+    decide(token, context) {
+      return decideCorrection(token, index, {
+        ...baseOptions,
+        previousWord: context?.previousWord,
+      });
     },
     correctToken(token) {
-      const decision = decideCorrection(token, index, { ignored, model: userModel, validator });
+      const decision = decideCorrection(token, index, baseOptions);
       if (decision.action !== "replace") {
         return { kind: "unchanged", original: token };
       }

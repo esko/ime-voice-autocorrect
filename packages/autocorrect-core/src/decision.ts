@@ -1,6 +1,7 @@
 import type { SymSpellIndex } from "./symspell.js";
 import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
+import { contextScore, type BigramModel } from "./context.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -50,6 +51,10 @@ export interface DecideOptions {
   model?: UserModel;
   /** Spell-validity oracle (Hunspell/nspell) for original protection + filtering. */
   validator?: Validator;
+  /** Bigram language model for context reranking. */
+  bigrams?: BigramModel;
+  /** The word typed before this token, for context scoring. */
+  previousWord?: string;
 }
 
 /**
@@ -95,7 +100,9 @@ export function decideCorrection(
       editDistance: candidate.editDistance,
       frequency: candidate.frequency,
       totalScore:
-        scoreCandidate(token, candidate) + (options.model?.score(token, candidate.term) ?? 0),
+        scoreCandidate(token, candidate) +
+        (options.model?.score(token, candidate.term) ?? 0) +
+        contextScore(options.previousWord, candidate.term, options.bigrams),
     }))
     .sort((a, b) => b.totalScore - a.totalScore);
 

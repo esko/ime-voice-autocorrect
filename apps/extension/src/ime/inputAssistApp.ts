@@ -179,9 +179,10 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       // Typing past a correction without undoing it counts as acceptance.
       recordAcceptanceOfPendingCorrection();
       const prior = stateManager.getPreviousToken()?.text ?? "";
+      const previousWord = stateManager.getPreviousWord();
       stateManager.noteCommittedText(character);
       if (stateManager.canAutocorrect()) {
-        await autocorrect.onCharacterTyped(contextId, prior, character);
+        await autocorrect.onCharacterTyped(contextId, prior, character, previousWord);
       }
     },
   };

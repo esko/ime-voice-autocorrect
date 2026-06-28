@@ -17,11 +17,13 @@ export interface CorrectionUndo {
 export class InputStateManager {
   private activeContext: chrome.input.ime.InputContext | null = null;
   private currentBuffer: string = "";
+  private previousWord: string = "";
   private correctionUndo: CorrectionUndo | null = null;
 
   onFocus(context: chrome.input.ime.InputContext): void {
     this.activeContext = context;
     this.currentBuffer = "";
+    this.previousWord = "";
     this.correctionUndo = null;
   }
 
@@ -29,6 +31,7 @@ export class InputStateManager {
     if (this.activeContext?.contextID === contextId) {
       this.activeContext = null;
       this.currentBuffer = "";
+      this.previousWord = "";
       this.correctionUndo = null;
     }
   }
@@ -43,6 +46,13 @@ export class InputStateManager {
     const textBeforeCursor = info.text.slice(0, info.focus);
     const lastWordMatch = textBeforeCursor.match(/(\S+)$/);
     this.currentBuffer = lastWordMatch?.[1] ?? "";
+    // The word before the current token, used for context (bigram) scoring.
+    const words = textBeforeCursor.split(/\s+/).filter(Boolean);
+    this.previousWord = (lastWordMatch ? words[words.length - 2] : words[words.length - 1]) ?? "";
+  }
+
+  getPreviousWord(): string {
+    return this.previousWord;
   }
 
   onKeyEvent(event: KeyboardEventLike): InputStateAction[] {
