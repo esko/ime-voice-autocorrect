@@ -23,6 +23,7 @@ describe("DictationService.applySharedSettings", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async () => true,
         deleteSurroundingText: async () => true,
@@ -74,6 +75,7 @@ describe("DictationService.applySharedSettings", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async () => true,
         deleteSurroundingText: async () => true,
@@ -90,6 +92,48 @@ describe("DictationService.applySharedSettings", () => {
     });
 
     service.setDictationEnabled(false);
+    await service.onDictationChordDown();
+
+    expect(sent.some((message) => (message as { type: string }).type === "START_SESSION")).toBe(
+      false,
+    );
+  });
+
+  it("does not start dictation when isDictationAllowed returns false (e.g. password field)", async () => {
+    const sent: unknown[] = [];
+    const bridge = new ExtensionBridgeServer({
+      allowedOrigin: "isolated-app://abc",
+      onRecorderMessage: () => {},
+    });
+    const port = {
+      postMessage: (message: unknown) => sent.push(message),
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn() },
+    };
+    bridge.connect(port, "isolated-app://abc/");
+
+    const service = new DictationService({
+      bridge,
+      launcher: { launch: async () => {} },
+      imeAdapter: {
+        hasValidContext: () => true,
+        getContextType: () => "password",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
+        getContextId: () => 1,
+        commitText: async () => true,
+        deleteSurroundingText: async () => true,
+      },
+      dictationConfig: DEFAULT_DICTATION_CONFIG,
+      sessionConfig: {
+        activationMode: "push-to-talk",
+        languageHint: "auto",
+        spokenPunctuation: true,
+        appendSpace: false,
+      },
+      isDictationAllowed: () => false, // blocks start!
+      createSessionId: () => "sess-1",
+    });
+
     await service.onDictationChordDown();
 
     expect(sent.some((message) => (message as { type: string }).type === "START_SESSION")).toBe(

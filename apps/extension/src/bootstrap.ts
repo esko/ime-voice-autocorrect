@@ -1,6 +1,5 @@
 import { BridgeHeartbeat } from "./bridge/heartbeat.js";
 import { connectExternalRecorder, registerInputAssist } from "./background.js";
-import { createChromeImeAdapter } from "./ime/chromeImeAdapter.js";
 import { createChromeOsRecorderLauncher } from "./recorder/chromeOsLauncher.js";
 import { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import { ExtensionImePreferences } from "./storage/imePreferences.js";
@@ -12,12 +11,6 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     return;
   }
 
-  let activeContext: chrome.input.ime.InputContext | null = null;
-  const imeAdapter = createChromeImeAdapter(
-    chromeApi,
-    () => activeContext,
-    () => "input-assist-us",
-  );
   const settingsCache = new ExtensionSettingsCache(chromeApi.storage.local);
   const imePreferences = new ExtensionImePreferences(chromeApi.storage.local);
 
@@ -27,10 +20,12 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     storage: chromeApi.storage.local,
   });
 
+  // No imeAdapter is supplied here: registerInputAssist builds the production
+  // adapter wired to the live InputStateManager (focus/blur/context tracking).
+  // The imeAdapter option exists only as a seam for injecting fakes in tests.
   const app = registerInputAssist(chromeApi, {
     allowedOrigin: RECORDER_ORIGIN_PREFIX,
     launchRecorder: () => launcher.launch(),
-    imeAdapter,
     settingsCache,
     imePreferences,
   });

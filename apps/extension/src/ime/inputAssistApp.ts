@@ -1,9 +1,8 @@
 import { AutocorrectImeAdapter } from "../autocorrect/adapter.js";
 import { ExtensionBridgeServer } from "../bridge/server.js";
 import { DictationService } from "../dictation/dictationService.js";
-import { ContextTracker } from "../ime/contextTracker.js";
+import { InputStateManager } from "../ime/inputStateManager.js";
 import { KeyRouter } from "../ime/keyRouter.js";
-import { isDictationAllowed } from "../ime/unsafeField.js";
 import { PendingRecorderLauncher } from "../recorder/launcher.js";
 import type { RecorderToExtensionMessage } from "@input-assist/protocol";
 import { DEFAULT_DICTATION_CONFIG } from "@input-assist/dictation-core";
@@ -27,8 +26,7 @@ export interface InputAssistAppOptions {
 }
 
 export function createInputAssistApp(options: InputAssistAppOptions) {
-  const contexts = new ContextTracker();
-  let activeContextType: string | undefined;
+  const stateManager = new InputStateManager();
 
   const dictationHolder: { service: DictationService | null } = { service: null };
   const assistiveUndo = options.imeUi ? new AssistiveUndoController(options.imeUi) : null;
@@ -68,9 +66,11 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     },
   }, {
     onCorrectionApplied: (contextId, original, corrected) => {
+      stateManager.noteReplacement(original, corrected);
       void assistiveUndo?.showCorrection(contextId, original, corrected);
     },
     onCorrectionUndone: () => {
+      stateManager.clearCorrectionUndo();
       assistiveUndo?.hide();
     },
   });
@@ -132,12 +132,10 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       spokenPunctuation: true,
       appendSpace: false,
     },
-    isDictationAllowed: () => isDictationAllowed(activeContextType),
+    isDictationAllowed: () => stateManager.canDictate(),
     createSessionId: options.createSessionId,
   });
   dictationHolder.service = dictation;
-
-  const textBuffers = new Map<number, string>();
 
   const keyRouter = new KeyRouter({
     onDictationDown: () => {
@@ -156,13 +154,12 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   syncMenuStatus();
 
   return {
-    contexts,
+    stateManager,
     bridge,
     dictation,
     launcher,
     keyRouter,
     autocorrect,
-    textBuffers,
     menuController,
     assistiveUndo,
     refreshImeMenu,
@@ -196,28 +193,19 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       dictation.setDictationEnabled(preferences.dictationEnabled);
       refreshAllImeMenus();
     },
-    setActiveContextType(type: string | undefined) {
-      activeContextType = type;
-    },
     onFocus(engineId: string, context: chrome.input.ime.InputContext) {
-      contexts.onFocus(engineId, context);
-      activeContextType = context.type;
-      textBuffers.set(context.contextID, "");
+      stateManager.onFocus(context);
     },
     onBlur(contextId: number) {
-      contexts.onBlur(contextId);
+      stateManager.onBlur(contextId);
       dictation.onContextLost();
-      textBuffers.delete(contextId);
-      activeContextType = undefined;
     },
     async onCharacterTyped(contextId: number, character: string) {
       assistiveUndo?.hide();
-      const prior = textBuffers.get(contextId) ?? "";
-      const buffer = prior + character;
-      textBuffers.set(contextId, buffer);
-      await autocorrect.onCharacterTyped(contextId, prior, character);
-      if (character === " ") {
-        textBuffers.set(contextId, "");
+      const prior = stateManager.getPreviousToken()?.text ?? "";
+      stateManager.noteCommittedText(character);
+      if (stateManager.canAutocorrect()) {
+        await autocorrect.onCharacterTyped(contextId, prior, character);
       }
     },
   };

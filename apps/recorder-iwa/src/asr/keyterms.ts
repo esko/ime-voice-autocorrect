@@ -1,5 +1,3 @@
-import type { LanguageHint } from "./createRealtimeSocket.js";
-
 export const MAX_ASR_KEYTERMS = 100;
 
 export function collectAsrKeyterms(

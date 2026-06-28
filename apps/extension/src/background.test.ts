@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { ContextTracker } from "./ime/contextTracker.js";
+import { InputStateManager } from "./ime/inputStateManager.js";
 import { KeyRouter } from "./ime/keyRouter.js";
 import { registerInputAssist } from "./background.js";
 
-describe("ContextTracker", () => {
+describe("InputStateManager basics in background", () => {
   it("tracks focus and blur for the active context", () => {
-    const tracker = new ContextTracker();
-    tracker.onFocus("input-assist-us", { contextID: 1 } as chrome.input.ime.InputContext);
-    expect(tracker.getActive()).toEqual({ contextId: 1, engineId: "input-assist-us" });
-    tracker.onBlur(1);
-    expect(tracker.getActive()).toBeNull();
+    const manager = new InputStateManager();
+    manager.onFocus({ contextID: 1, type: "text" } as chrome.input.ime.InputContext);
+    expect(manager.getActiveContextId()).toBe(1);
+    manager.onBlur(1);
+    expect(manager.getActiveContextId()).toBeNull();
   });
 });
 
@@ -44,6 +44,7 @@ describe("registerInputAssist backspace undo", () => {
             },
           },
           onBlur: { addListener: vi.fn() },
+          onSurroundingTextChanged: { addListener: vi.fn() },
           onMenuItemActivated: { addListener: vi.fn() },
           onAssistiveWindowButtonClicked: { addListener: vi.fn() },
           onKeyEvent: {

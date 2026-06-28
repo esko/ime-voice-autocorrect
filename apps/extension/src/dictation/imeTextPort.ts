@@ -1,21 +1,24 @@
-import type { ImeTextPort as CoreImeTextPort } from "@input-assist/dictation-core";
+import type { ContextToken, ImeTextPort as CoreImeTextPort } from "@input-assist/dictation-core";
 
 export interface ChromeImeTextAdapter {
-  hasValidContext(): boolean;
+  hasValidContext(targetToken?: ContextToken | number): boolean;
   getContextType(): string | undefined;
+  getContextToken(): ContextToken | null;
   getContextId(): number | null;
-  commitText(text: string): Promise<boolean>;
+  commitText(text: string, targetToken?: ContextToken | number): Promise<boolean>;
   deleteSurroundingText(length: number): Promise<boolean>;
 }
 
 export function createImeTextPort(adapter: ChromeImeTextAdapter): CoreImeTextPort {
   return {
-    hasValidContext: () => adapter.hasValidContext(),
-    commitText: async (text) => {
-      if (!adapter.hasValidContext()) {
+    getContextId: () => adapter.getContextId(),
+    getContextToken: () => adapter.getContextToken(),
+    hasValidContext: (targetToken?: ContextToken | number) => adapter.hasValidContext(targetToken),
+    commitText: async (text, targetToken?: ContextToken | number) => {
+      if (!adapter.hasValidContext(targetToken)) {
         return false;
       }
-      return adapter.commitText(text);
+      return adapter.commitText(text, targetToken);
     },
   };
 }

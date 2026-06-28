@@ -1,7 +1,6 @@
 import {
   isSessionIdMatch,
   isSessionScopedRecorderMessage,
-  parseExtensionToRecorder,
   parseRecorderToExtension,
   type ExtensionToRecorderMessage,
   type RecorderToExtensionMessage,
@@ -51,8 +50,8 @@ export class ExtensionBridgeServer {
       if (parsed.type === "PONG") {
         return;
       }
-      if (isSessionScopedRecorderMessage(parsed) && this.activeSessionId) {
-        if (!isSessionIdMatch(parsed, this.activeSessionId)) {
+      if (isSessionScopedRecorderMessage(parsed)) {
+        if (!this.activeSessionId || !isSessionIdMatch(parsed, this.activeSessionId)) {
           return;
         }
       }

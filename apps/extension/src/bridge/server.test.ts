@@ -50,8 +50,9 @@ describe("end-to-end dictation bridge", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
-        commitText: async (text) => {
+        commitText: async (text, _contextId) => {
           commits.push(text);
           return true;
         },
@@ -82,6 +83,46 @@ describe("end-to-end dictation bridge", () => {
     await vi.waitUntil(() => commits.length === 1);
 
     expect(commits[0]).toBe("hello from recorder");
+  });
+  it("ignores late recorder events after session cancel", async () => {
+    const port = createPort();
+    const commits: string[] = [];
+    const app = createInputAssistApp({
+      allowedOrigin: "isolated-app://abc",
+      launchRecorder: async () => {},
+      imeAdapter: {
+        hasValidContext: () => true,
+        getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
+        getContextId: () => 1,
+        commitText: async (text, _contextId) => {
+          commits.push(text);
+          return true;
+        },
+        deleteSurroundingText: async () => true,
+      },
+      createSessionId: () => "sess-1",
+    });
+
+    app.bridge.connect(port, "isolated-app://abc/");
+    port.emit({
+      type: "HELLO",
+      protocolVersion: 1,
+      appId: "input-assist-recorder",
+    });
+
+    await app.dictation.onDictationChordDown();
+    app.dictation.onEscape(); // activeSessionId gets set to null
+    
+    port.emit({
+      type: "COMMITTED_TRANSCRIPT",
+      sessionId: "sess-1", // late message from canceled session
+      text: "late hello",
+    });
+    
+    // allow event loop to run
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(commits).toEqual([]);
   });
 });
 

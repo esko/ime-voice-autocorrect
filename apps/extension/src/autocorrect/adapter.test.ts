@@ -20,16 +20,16 @@ describe("AutocorrectImeAdapter", () => {
     expect(commits).toEqual(["the"]);
   });
 
-  it("restores the original token on immediate backspace", async () => {
+  it("restores the original token on undoCorrection", async () => {
+    let deletedLength = 0;
     const adapter = new AutocorrectImeAdapter({
-      deleteSurroundingText: vi.fn(),
+      deleteSurroundingText: async (_ctx, length) => { deletedLength = length; },
       commitText: vi.fn(),
     });
 
-    await adapter.onCharacterTyped(1, "teh", " ");
-    const restored = await adapter.onBackspace(1);
+    await adapter.undoCorrection(1, { restore: "teh", deleteLength: 3 });
 
-    expect(restored).toBe(true);
+    expect(deletedLength).toBe(3);
   });
 
   it("skips corrections when disabled", async () => {

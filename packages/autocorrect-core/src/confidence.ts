@@ -1,12 +1,11 @@
-import type { Dictionary } from "./dictionary.js";
-import { findCandidates } from "./symspell.js";
+import type { SymSpellIndex } from "./symspell.js";
 
 export function pickCandidate(
   token: string,
-  dictionary: Dictionary,
+  index: SymSpellIndex,
   minConfidence: number,
 ): string | null {
-  const candidates = findCandidates(token, dictionary);
+  const candidates = index.lookup(token);
   if (candidates.length === 0) {
     return null;
   }
@@ -18,9 +17,9 @@ export function pickCandidate(
   }
 
   if (!second) {
-    return best.word;
+    return best.term;
   }
 
   const confidence = best.frequency / second.frequency;
-  return confidence >= minConfidence ? best.word : null;
+  return confidence >= minConfidence ? best.term : null;
 }

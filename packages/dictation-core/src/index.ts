@@ -3,6 +3,7 @@ export type { DictationSessionDeps } from "./dictationSession.js";
 export { DEFAULT_DICTATION_CONFIG } from "./config.js";
 export type { ActivationMode, DictationConfig } from "./config.js";
 export type {
+  ContextToken,
   ImeTextPort,
   LoggerPort,
   RecorderPort,

@@ -17,9 +17,7 @@ export function createRecorderApp(options: {
   const settings = new SettingsStore(options.storage);
   const ui = new RecorderUiController();
   let sessionController: RecorderSessionController | null = null;
-  let bridgeServer: RecorderBridgeServer;
-
-  bridgeServer = new RecorderBridgeServer({
+  const bridgeServer = new RecorderBridgeServer({
     onExtensionMessage: async (message) => {
       if (message.type === "START_SESSION") {
         ui.setListening();

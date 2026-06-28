@@ -4,7 +4,6 @@ import {
   extractLastWord,
   isWordBoundary,
   type AutocorrectEngine,
-  type CorrectionResult,
   type Dictionary,
 } from "@input-assist/autocorrect-core";
 
@@ -30,7 +29,6 @@ export interface AutocorrectImeAdapterOptions {
 
 export class AutocorrectImeAdapter {
   private engine: AutocorrectEngine;
-  private lastCorrection: CorrectionResult | null = null;
   private readonly dictionary: Dictionary;
   private enabled: boolean;
   private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
@@ -53,9 +51,6 @@ export class AutocorrectImeAdapter {
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    if (!enabled) {
-      this.lastCorrection = null;
-    }
   }
 
   isEnabled(): boolean {
@@ -86,30 +81,17 @@ export class AutocorrectImeAdapter {
 
     const result = this.engine.correctToken(token);
     if (result.kind !== "corrected") {
-      this.lastCorrection = null;
       return;
     }
 
     await this.textAdapter.deleteSurroundingText(contextId, token.length);
     await this.textAdapter.commitText(contextId, result.corrected);
-    this.lastCorrection = result;
     this.onCorrectionApplied?.(contextId, result.original, result.corrected);
   }
 
-  async undoLastCorrection(contextId: number): Promise<boolean> {
-    if (this.lastCorrection?.kind !== "corrected") {
-      return false;
-    }
-
-    const { undo } = this.lastCorrection;
+  async undoCorrection(contextId: number, undo: { restore: string; deleteLength: number }): Promise<void> {
     await this.textAdapter.deleteSurroundingText(contextId, undo.deleteLength);
     await this.textAdapter.commitText(contextId, undo.restore);
-    this.lastCorrection = null;
     this.onCorrectionUndone?.(contextId);
-    return true;
-  }
-
-  async onBackspace(contextId: number): Promise<boolean> {
-    return this.undoLastCorrection(contextId);
   }
 }

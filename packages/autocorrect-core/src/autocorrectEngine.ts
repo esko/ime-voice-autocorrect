@@ -1,6 +1,7 @@
 import type { Dictionary } from "./dictionary.js";
 import { pickCandidate } from "./confidence.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
+import { SymSpellIndex } from "./symspell.js";
 
 export type CorrectionResult =
   | { kind: "unchanged"; original: string }
@@ -32,20 +33,24 @@ export function createAutocorrectEngine(
     minConfidence = 1.1,
   } = options;
 
-  const personal = new Set(personalDictionary);
+  let index = SymSpellIndex.build(dictionary.entries, { maxEditDistance: dictionary.maxEditDistance });
+  if (personalDictionary.length > 0) {
+    const personalEntries = personalDictionary.map(word => ({ word, frequency: 100_000 }));
+    index = index.withPersonalEntries(personalEntries);
+  }
+
   const ignored = new Set(ignoreList);
 
   return {
     correctToken(token) {
       if (
-        personal.has(token) ||
         ignored.has(token) ||
         shouldIgnoreToken(token)
       ) {
         return { kind: "unchanged", original: token };
       }
 
-      const candidate = pickCandidate(token, dictionary, minConfidence);
+      const candidate = pickCandidate(token, index, minConfidence);
       if (candidate === null || candidate === token) {
         return { kind: "unchanged", original: token };
       }

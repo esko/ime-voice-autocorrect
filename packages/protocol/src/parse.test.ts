@@ -60,8 +60,11 @@ describe("parseRecorderToExtension", () => {
       sessionId: "sess-1",
       text: "hello world",
     });
-    expect(message.type).toBe("COMMITTED_TRANSCRIPT");
-    expect(message.text).toBe("hello world");
+    expect(message).toEqual({
+      type: "COMMITTED_TRANSCRIPT",
+      sessionId: "sess-1",
+      text: "hello world",
+    });
   });
 
 

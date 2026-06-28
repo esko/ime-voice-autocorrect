@@ -4,18 +4,36 @@ export function createChromeImeAdapter(
   chromeApi: typeof chrome,
   getContext: () => chrome.input.ime.InputContext | null,
   getEngineId: () => string,
+  getToken?: () => { contextId: number; generation: number } | null,
 ): ChromeImeTextAdapter {
   return {
-    hasValidContext: () => getContext() !== null,
+    hasValidContext: (token?: { contextId: number; generation: number } | number) => {
+      const currentContext = getContext();
+      if (!currentContext) return false;
+      if (token === undefined) return true;
+      if (typeof token === "number") {
+        return currentContext.contextID === token;
+      }
+      const currentToken = getToken?.();
+      if (!currentToken) return false;
+      return currentToken.contextId === token.contextId && currentToken.generation === token.generation;
+    },
     getContextType: () => getContext()?.type,
+    getContextToken: () => getToken?.() ?? null,
     getContextId: () => getContext()?.contextID ?? null,
-    commitText: async (text) => {
+    commitText: async (text, targetToken?: { contextId: number; generation: number } | number) => {
       const context = getContext();
-      if (!context) {
+      if (!context && targetToken === undefined) {
         return false;
       }
+      let idToCommit: number;
+      if (targetToken !== undefined) {
+        idToCommit = typeof targetToken === "number" ? targetToken : targetToken.contextId;
+      } else {
+        idToCommit = context!.contextID;
+      }
       return new Promise((resolve) => {
-        chromeApi.input.ime.commitText({ contextID: context.contextID, text }, (success) =>
+        chromeApi.input.ime.commitText({ contextID: idToCommit, text }, (success) =>
           resolve(success),
         );
       });

@@ -5,6 +5,6 @@ export function isWordBoundary(character: string): boolean {
 }
 
 export function extractLastWord(textBeforeBoundary: string): string | null {
-  const match = /(?:^|[\s.,!?;:'"(\[{<])([A-Za-z']+)$/.exec(textBeforeBoundary);
+  const match = /(?:^|[\s.,!?;:'"([{<])([A-Za-z']+)$/.exec(textBeforeBoundary);
   return match?.[1] ?? null;
 }

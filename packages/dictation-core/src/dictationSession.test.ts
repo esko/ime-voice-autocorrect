@@ -14,7 +14,13 @@ function createFakes() {
   let handlers: StreamHandlers | null = null;
 
   const ime: ImeTextPort = {
-    hasValidContext: () => validContext,
+    getContextId: () => validContext ? 1 : null,
+    getContextToken: () => validContext ? { contextId: 1, generation: 1 } : null,
+    hasValidContext: (token) => validContext && (
+      token === undefined ||
+      (typeof token === "number" && token === 1) ||
+      (typeof token === "object" && token.contextId === 1 && token.generation === 1)
+    ),
     commitText: async (text) => {
       commits.push(text);
       return true;
@@ -216,10 +222,8 @@ describe("DictationSession", () => {
 
   it("applies spoken punctuation on finalize", async () => {
     const fakes = createFakes();
-    let handlers: StreamHandlers | null = null;
     const recorder: RecorderPort = {
       start: async (_sessionId, nextHandlers) => {
-        handlers = nextHandlers;
         nextHandlers.onCommitted("hello comma world period");
       },
       stop: async () => {},
@@ -351,5 +355,128 @@ describe("DictationSession", () => {
     await vi.waitUntil(() => fakes.commits.length === 1);
 
     expect(fakes.commits).toEqual(["second"]);
+  });
+
+  describe("context target safety", () => {
+    it("starts recording without active context but drops final commit", async () => {
+      const fakes = createFakes();
+      fakes.setValidContext(false);
+      const session = new DictationSession({
+        ime: fakes.ime,
+        recorder: fakes.recorder,
+        status: fakes.status,
+        logger: fakes.logger,
+        config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+      });
+
+      session.onDictationChordDown();
+      expect(session.isRunning()).toBe(true);
+
+      fakes.handlers()?.onCommitted("hello");
+      session.onDictationChordUp();
+      await Promise.resolve(); // allow finalize to run
+
+      expect(fakes.commits).toEqual([]);
+      expect(fakes.logger.warn).toHaveBeenCalledWith("Undeliverable transcript: no valid target context");
+    });
+
+    it("drops commit if context changes during recording", async () => {
+      const fakes = createFakes();
+      let currentContextId: number | null = 1;
+      const currentGeneration = 1;
+      fakes.ime.getContextId = () => currentContextId;
+      fakes.ime.getContextToken = () => currentContextId ? { contextId: currentContextId, generation: currentGeneration } : null;
+      fakes.ime.hasValidContext = (token) => 
+        currentContextId !== null && 
+        (token === undefined || 
+         (typeof token === "number" ? token === currentContextId : token.contextId === currentContextId && token.generation === currentGeneration));
+
+      const session = new DictationSession({
+        ime: fakes.ime,
+        recorder: fakes.recorder,
+        status: fakes.status,
+        logger: fakes.logger,
+        config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+      });
+
+      session.onDictationChordDown(); // Starts with context 1, generation 1
+      expect(session.isRunning()).toBe(true);
+
+      fakes.handlers()?.onCommitted("hello");
+      currentContextId = 2; // Context changes to 2
+      session.onDictationChordUp();
+      await Promise.resolve();
+
+      expect(fakes.commits).toEqual([]);
+      expect(fakes.logger.warn).toHaveBeenCalledWith("Undeliverable transcript: no valid target context");
+    });
+
+    it("drops commit if context is lost during recording", async () => {
+      const fakes = createFakes();
+      let currentContextId: number | null = 1;
+      const currentGeneration = 1;
+      fakes.ime.getContextId = () => currentContextId;
+      fakes.ime.getContextToken = () => currentContextId ? { contextId: currentContextId, generation: currentGeneration } : null;
+      fakes.ime.hasValidContext = (token) => 
+        currentContextId !== null && 
+        (token === undefined || 
+         (typeof token === "number" ? token === currentContextId : token.contextId === currentContextId && token.generation === currentGeneration));
+
+      const session = new DictationSession({
+        ime: fakes.ime,
+        recorder: fakes.recorder,
+        status: fakes.status,
+        logger: fakes.logger,
+        config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+      });
+
+      session.onDictationChordDown(); // Starts with context 1
+      expect(session.isRunning()).toBe(true);
+
+      fakes.handlers()?.onCommitted("hello");
+      currentContextId = null; // Blur happens, context is null
+      
+      session.onDictationChordUp();
+      await Promise.resolve();
+
+      expect(fakes.commits).toEqual([]);
+      expect(fakes.logger.warn).toHaveBeenCalledWith("Undeliverable transcript: no valid target context");
+    });
+
+    it("blur + refocus drops commit due to generation mismatch", async () => {
+      const fakes = createFakes();
+      let currentContextId: number | null = 1;
+      let currentGeneration = 1;
+      fakes.ime.getContextId = () => currentContextId;
+      fakes.ime.getContextToken = () => currentContextId ? { contextId: currentContextId, generation: currentGeneration } : null;
+      fakes.ime.hasValidContext = (token) => 
+        currentContextId !== null && 
+        (token === undefined || 
+         (typeof token === "number" ? token === currentContextId : token.contextId === currentContextId && token.generation === currentGeneration));
+
+      const session = new DictationSession({
+        ime: fakes.ime,
+        recorder: fakes.recorder,
+        status: fakes.status,
+        logger: fakes.logger,
+        config: { activationMode: "push-to-talk", spokenPunctuation: false, appendSpace: false },
+      });
+
+      session.onDictationChordDown(); // Starts with context 1, generation 1
+      expect(session.isRunning()).toBe(true);
+
+      fakes.handlers()?.onCommitted("hello");
+      
+      // Blur and refocus SAME contextId, but generation increments
+      currentContextId = null;
+      currentGeneration++;
+      currentContextId = 1;
+
+      session.onDictationChordUp();
+      await Promise.resolve();
+
+      expect(fakes.commits).toEqual([]);
+      expect(fakes.logger.warn).toHaveBeenCalledWith("Undeliverable transcript: no valid target context");
+    });
   });
 });

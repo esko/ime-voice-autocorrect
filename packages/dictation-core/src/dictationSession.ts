@@ -5,6 +5,7 @@ import type {
   RecorderPort,
   RecorderStatusPort,
   StreamHandlers,
+  ContextToken,
 } from "./ports.js";
 import { TranscriptBuffer } from "./transcriptBuffer.js";
 import { detectScratchThat, formatFinalTranscript, formatPartialTranscript } from "./transcriptFormatter.js";
@@ -17,6 +18,10 @@ export interface DictationSessionDeps {
   config?: DictationConfig;
   createSessionId?: () => string;
 }
+
+type DictationTarget =
+  | { kind: "valid-context"; token: ContextToken; startedAt: number }
+  | { kind: "no-target" };
 
 export class DictationSession {
   private readonly ime: ImeTextPort;
@@ -31,6 +36,7 @@ export class DictationSession {
   private starting = false;
   private keyHeld = false;
   private sessionId: string | null = null;
+  private target: DictationTarget = { kind: "no-target" };
 
   constructor(deps: DictationSessionDeps) {
     this.ime = deps.ime;
@@ -79,6 +85,8 @@ export class DictationSession {
   }
 
   onContextLost(): void {
+    // Optionally cancel. But we let `finalize` check the target validity anyway.
+    // If blur invalidates original delivery target, we should still stop and reject.
     if (this.running) {
       this.cancel();
     }
@@ -96,9 +104,12 @@ export class DictationSession {
     if (this.running || this.starting) {
       return;
     }
-    if (!this.ime.hasValidContext()) {
-      this.logger.warn("No valid IME context");
-      return;
+
+    const token = this.ime.getContextToken();
+    if (token === null) {
+      this.target = { kind: "no-target" };
+    } else {
+      this.target = { kind: "valid-context", token, startedAt: Date.now() };
     }
 
     this.starting = true;
@@ -151,8 +162,13 @@ export class DictationSession {
     try {
       await this.recorder.stop();
       const transcript = formatFinalTranscript(this.buffer.toText(), this.config);
-      if (transcript && this.ime.hasValidContext()) {
-        await this.ime.commitText(transcript);
+      
+      if (transcript) {
+        if (this.target.kind === "valid-context" && this.ime.hasValidContext(this.target.token)) {
+          await this.ime.commitText(transcript, this.target.token);
+        } else {
+          this.logger.warn("Undeliverable transcript: no valid target context");
+        }
       }
     } catch (error) {
       this.handleError(error);

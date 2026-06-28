@@ -12,6 +12,7 @@ describe("createInputAssistApp", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async () => true,
         deleteSurroundingText: async () => true,
@@ -48,6 +49,7 @@ describe("createInputAssistApp", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async (text) => {
           commits.push(text);
@@ -89,6 +91,7 @@ describe("createInputAssistApp", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "text",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async () => true,
         deleteSurroundingText: async () => true,
@@ -110,6 +113,7 @@ describe("createInputAssistApp", () => {
       imeAdapter: {
         hasValidContext: () => true,
         getContextType: () => "password",
+        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async () => true,
         deleteSurroundingText: async () => true,

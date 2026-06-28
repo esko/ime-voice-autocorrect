@@ -1,6 +1,10 @@
+export type ContextToken = { contextId: number; generation: number };
+
 export interface ImeTextPort {
-  hasValidContext(): boolean;
-  commitText(text: string): Promise<boolean>;
+  getContextId(): number | null;
+  getContextToken(): ContextToken | null;
+  hasValidContext(targetToken?: ContextToken | number): boolean;
+  commitText(text: string, targetToken?: ContextToken | number): Promise<boolean>;
 }
 
 export interface StreamHandlers {
