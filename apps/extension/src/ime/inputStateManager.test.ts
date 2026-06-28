@@ -74,14 +74,14 @@ describe("InputStateManager", () => {
     expect(manager.getPreviousToken()?.text).toBe("hello");
   });
 
-  it("tracks the previous word for context scoring", () => {
+  it("tracks up to two previous words for context scoring", () => {
     manager.onFocus(createContext(1));
-    manager.onSurroundingTextChanged(1, { text: "in teh", focus: 6, anchor: 6 });
+    manager.onSurroundingTextChanged(1, { text: "i went to teh", focus: 13, anchor: 13 });
     expect(manager.getPreviousToken()?.text).toBe("teh");
-    expect(manager.getPreviousWord()).toBe("in");
+    expect(manager.getPreviousWords()).toEqual(["went", "to"]);
 
     manager.onBlur(1);
-    expect(manager.getPreviousWord()).toBe("");
+    expect(manager.getPreviousWords()).toEqual([]);
   });
 
   it("password fields disable autocorrect", () => {

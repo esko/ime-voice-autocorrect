@@ -1,11 +1,11 @@
 import {
   createAutocorrectEngine,
-  createCommonBigrams,
+  createCommonContext,
   createCoreEnglishDictionary,
   extractLastWord,
   isWordBoundary,
   type AutocorrectEngine,
-  type BigramModel,
+  type ContextModel,
   type Dictionary,
   type RankedCandidate,
   type UserModel,
@@ -29,7 +29,7 @@ export interface AutocorrectImeAdapterOptions {
   ignoreList?: readonly string[];
   userModel?: UserModel;
   validator?: Validator;
-  bigrams?: BigramModel;
+  context?: ContextModel;
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
@@ -46,7 +46,7 @@ export class AutocorrectImeAdapter {
   private readonly dictionary: Dictionary;
   private readonly userModel?: UserModel;
   private validator?: Validator;
-  private readonly bigrams: BigramModel;
+  private readonly context: ContextModel;
   private personalDictionary: readonly string[];
   private ignoreList: readonly string[];
   private enabled: boolean;
@@ -61,7 +61,7 @@ export class AutocorrectImeAdapter {
     this.dictionary = options.dictionary ?? createCoreEnglishDictionary();
     this.userModel = options.userModel;
     this.validator = options.validator;
-    this.bigrams = options.bigrams ?? createCommonBigrams();
+    this.context = options.context ?? createCommonContext();
     this.personalDictionary = options.personalDictionary ?? [];
     this.ignoreList = options.ignoreList ?? [];
     this.enabled = options.enabled ?? true;
@@ -78,7 +78,7 @@ export class AutocorrectImeAdapter {
       ignoreList: this.ignoreList,
       userModel: this.userModel,
       validator: this.validator,
-      bigrams: this.bigrams,
+      context: this.context,
     });
   }
 
@@ -109,7 +109,7 @@ export class AutocorrectImeAdapter {
     contextId: number,
     textBeforeCursor: string,
     character: string,
-    previousWord?: string,
+    previousWords: readonly string[] = [],
   ): Promise<void> {
     if (!this.enabled || !isWordBoundary(character)) {
       return;
@@ -120,7 +120,7 @@ export class AutocorrectImeAdapter {
       return;
     }
 
-    const decision = this.engine.decide(token, { previousWord });
+    const decision = this.engine.decide(token, { previousWords });
     if (decision.action === "replace") {
       await this.textAdapter.deleteSurroundingText(contextId, token.length);
       await this.textAdapter.commitText(contextId, decision.replacement);

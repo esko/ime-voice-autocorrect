@@ -1,41 +1,62 @@
-/** A previous-word → word bigram frequency lookup. */
-export interface BigramModel {
-  count(previousWord: string, word: string): number;
+/**
+ * Context language model for candidate reranking. Scores a candidate given the
+ * words that precede it, preferring a trigram match and backing off to a bigram
+ * (stupid backoff). Bounded so context disambiguates between candidates without
+ * dominating the rest of the score.
+ */
+export interface ContextModel {
+  /** Score a candidate given the preceding words (most recent last). */
+  score(previousWords: readonly string[], candidate: string): number;
 }
 
-/**
- * Context boost: a candidate that forms a common bigram with the previous word
- * is more likely the intended one. Bounded so context disambiguates between
- * candidates without dominating the score.
- */
-export function contextScore(
-  previousWord: string | undefined,
-  candidate: string,
-  model: BigramModel | undefined,
-): number {
-  if (!model || !previousWord) {
-    return 0;
-  }
-  const count = model.count(previousWord, candidate);
+const MAX_CONTEXT_BONUS = 1.5;
+const NGRAM_WEIGHT = 0.4;
+const BIGRAM_BACKOFF = 0.8;
+
+function boundedLog(count: number, weight: number): number {
   if (count <= 0) {
     return 0;
   }
-  return Math.min(1.5, Math.log10(count + 1) * 0.4);
+  return Math.min(MAX_CONTEXT_BONUS, Math.log10(count + 1) * weight);
 }
 
-export function createBigramModel(counts: Readonly<Record<string, number>>): BigramModel {
-  const map = new Map<string, number>();
-  for (const [pair, count] of Object.entries(counts)) {
-    map.set(pair.toLowerCase(), count);
-  }
+function toMap(table: Readonly<Record<string, number>>): Map<string, number> {
+  return new Map(Object.entries(table).map(([key, value]) => [key.toLowerCase(), value]));
+}
+
+export function createNgramContext(tables: {
+  bigrams?: Readonly<Record<string, number>>;
+  trigrams?: Readonly<Record<string, number>>;
+}): ContextModel {
+  const bigrams = toMap(tables.bigrams ?? {});
+  const trigrams = toMap(tables.trigrams ?? {});
+
   return {
-    count: (previousWord, word) =>
-      map.get(`${previousWord.toLowerCase()} ${word.toLowerCase()}`) ?? 0,
+    score(previousWords, candidate) {
+      const words = previousWords.map((word) => word.toLowerCase());
+      const candidateWord = candidate.toLowerCase();
+      const w1 = words[words.length - 1];
+      const w2 = words[words.length - 2];
+
+      if (w2 !== undefined && w1 !== undefined) {
+        const trigram = trigrams.get(`${w2} ${w1} ${candidateWord}`) ?? 0;
+        if (trigram > 0) {
+          return boundedLog(trigram, NGRAM_WEIGHT);
+        }
+      }
+      if (w1 !== undefined) {
+        const bigram = bigrams.get(`${w1} ${candidateWord}`) ?? 0;
+        if (bigram > 0) {
+          return boundedLog(bigram, NGRAM_WEIGHT) * BIGRAM_BACKOFF;
+        }
+      }
+      return 0;
+    },
   };
 }
 
-// A small seed table of common English bigrams. Enough to disambiguate the most
-// frequent function-word corrections (e.g. "in teh" -> "in the"). Grow later.
+// Seed tables — enough to disambiguate the most frequent function-word
+// corrections. Replace with a larger compressed corpus later (see roadmap).
 const COMMON_BIGRAMS: Record<string, number> = {
   "of the": 2_500_000,
   "in the": 2_400_000,
@@ -57,6 +78,19 @@ const COMMON_BIGRAMS: Record<string, number> = {
   "need to": 200_000,
 };
 
-export function createCommonBigrams(): BigramModel {
-  return createBigramModel(COMMON_BIGRAMS);
+const COMMON_TRIGRAMS: Record<string, number> = {
+  "one of the": 300_000,
+  "out of the": 200_000,
+  "a lot of": 250_000,
+  "as well as": 150_000,
+  "i want to": 180_000,
+  "i need to": 140_000,
+  "going to be": 160_000,
+  "i would like": 90_000,
+  "to be the": 80_000,
+  "the end of": 90_000,
+};
+
+export function createCommonContext(): ContextModel {
+  return createNgramContext({ bigrams: COMMON_BIGRAMS, trigrams: COMMON_TRIGRAMS });
 }

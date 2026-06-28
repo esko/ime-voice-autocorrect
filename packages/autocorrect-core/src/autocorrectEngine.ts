@@ -1,13 +1,13 @@
 import type { Dictionary } from "./dictionary.js";
 import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
-import type { BigramModel } from "./context.js";
+import type { ContextModel } from "./context.js";
 import { decideCorrection, type CorrectionDecision } from "./decision.js";
 import { SymSpellIndex } from "./symspell.js";
 
-/** Per-call context for a decision (e.g. the previous word for reranking). */
+/** Per-call context for a decision (e.g. preceding words for reranking). */
 export interface DecideContext {
-  previousWord?: string;
+  previousWords?: readonly string[];
 }
 
 export type CorrectionResult =
@@ -32,7 +32,7 @@ export interface AutocorrectEngineOptions {
   ignoreList?: readonly string[];
   userModel?: UserModel;
   validator?: Validator;
-  bigrams?: BigramModel;
+  context?: ContextModel;
 }
 
 export function createAutocorrectEngine(
@@ -44,7 +44,7 @@ export function createAutocorrectEngine(
     ignoreList = [],
     userModel,
     validator,
-    bigrams,
+    context,
   } = options;
 
   let index = SymSpellIndex.build(dictionary.entries, {
@@ -60,13 +60,13 @@ export function createAutocorrectEngine(
 
   const ignored = new Set(ignoreList);
 
-  const baseOptions = { ignored, model: userModel, validator, bigrams };
+  const baseOptions = { ignored, model: userModel, validator, context };
 
   return {
-    decide(token, context) {
+    decide(token, decideContext) {
       return decideCorrection(token, index, {
         ...baseOptions,
-        previousWord: context?.previousWord,
+        previousWords: decideContext?.previousWords,
       });
     },
     correctToken(token) {

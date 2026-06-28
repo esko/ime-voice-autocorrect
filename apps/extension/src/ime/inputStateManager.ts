@@ -17,13 +17,13 @@ export interface CorrectionUndo {
 export class InputStateManager {
   private activeContext: chrome.input.ime.InputContext | null = null;
   private currentBuffer: string = "";
-  private previousWord: string = "";
+  private previousWords: string[] = [];
   private correctionUndo: CorrectionUndo | null = null;
 
   onFocus(context: chrome.input.ime.InputContext): void {
     this.activeContext = context;
     this.currentBuffer = "";
-    this.previousWord = "";
+    this.previousWords = [];
     this.correctionUndo = null;
   }
 
@@ -31,7 +31,7 @@ export class InputStateManager {
     if (this.activeContext?.contextID === contextId) {
       this.activeContext = null;
       this.currentBuffer = "";
-      this.previousWord = "";
+      this.previousWords = [];
       this.correctionUndo = null;
     }
   }
@@ -46,13 +46,15 @@ export class InputStateManager {
     const textBeforeCursor = info.text.slice(0, info.focus);
     const lastWordMatch = textBeforeCursor.match(/(\S+)$/);
     this.currentBuffer = lastWordMatch?.[1] ?? "";
-    // The word before the current token, used for context (bigram) scoring.
+    // Up to two words before the current token (most recent last), for n-gram
+    // context scoring.
     const words = textBeforeCursor.split(/\s+/).filter(Boolean);
-    this.previousWord = (lastWordMatch ? words[words.length - 2] : words[words.length - 1]) ?? "";
+    const beforeToken = lastWordMatch ? words.slice(0, -1) : words;
+    this.previousWords = beforeToken.slice(-2);
   }
 
-  getPreviousWord(): string {
-    return this.previousWord;
+  getPreviousWords(): readonly string[] {
+    return this.previousWords;
   }
 
   onKeyEvent(event: KeyboardEventLike): InputStateAction[] {

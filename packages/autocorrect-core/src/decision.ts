@@ -1,7 +1,7 @@
 import type { SymSpellIndex } from "./symspell.js";
 import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
-import { contextScore, type BigramModel } from "./context.js";
+import type { ContextModel } from "./context.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -51,10 +51,10 @@ export interface DecideOptions {
   model?: UserModel;
   /** Spell-validity oracle (Hunspell/nspell) for original protection + filtering. */
   validator?: Validator;
-  /** Bigram language model for context reranking. */
-  bigrams?: BigramModel;
-  /** The word typed before this token, for context scoring. */
-  previousWord?: string;
+  /** N-gram language model for context reranking. */
+  context?: ContextModel;
+  /** Words typed before this token (most recent last), for context scoring. */
+  previousWords?: readonly string[];
 }
 
 /**
@@ -102,7 +102,7 @@ export function decideCorrection(
       totalScore:
         scoreCandidate(token, candidate) +
         (options.model?.score(token, candidate.term) ?? 0) +
-        contextScore(options.previousWord, candidate.term, options.bigrams),
+        (options.context?.score(options.previousWords ?? [], candidate.term) ?? 0),
     }))
     .sort((a, b) => b.totalScore - a.totalScore);
 
