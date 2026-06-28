@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { bootstrapExtension } from "./bootstrap.js";
 
 type FocusListener = (context: chrome.input.ime.InputContext) => void;
@@ -19,14 +19,6 @@ type KeyListener = (
  * and asserts the correction actually reaches `chrome.input.ime`.
  */
 describe("bootstrapExtension IME wiring", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it("delivers an autocorrect correction to the focused context", async () => {
     const commitText = vi.fn(
       (_params: { contextID: number; text: string }, callback?: (success: boolean) => void) =>
@@ -85,12 +77,14 @@ describe("bootstrapExtension IME wiring", () => {
 
     // Type a misspelling followed by a word boundary to trigger autocorrect.
     for (const key of ["t", "e", "h", " "]) {
-      await keyListener!("input-assist-us", {
+      keyListener!("input-assist", {
         key,
         type: "keydown",
       } as chrome.input.ime.KeyEvent);
     }
 
+    // The correction runs asynchronously after the synchronous key handler.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     // With the broken null-context adapter these are never reached.
     expect(deleteSurroundingText).toHaveBeenCalled();
     expect(commitText).toHaveBeenCalledWith(

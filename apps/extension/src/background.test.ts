@@ -17,8 +17,9 @@ describe("registerInputAssist key handling", () => {
     const commitText = vi.fn((_parameters, callback) => callback?.(true));
     const deleteSurroundingText = vi.fn((_parameters, callback) => callback?.());
     let keyListener:
-      | ((engineId: string, keyData: chrome.input.ime.KeyboardEvent) => Promise<boolean>)
+      | ((engineId: string, keyData: chrome.input.ime.KeyboardEvent) => boolean)
       | null = null;
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
     const chromeApi = {
       input: {
@@ -54,20 +55,23 @@ describe("registerInputAssist key handling", () => {
     // Normal typing must pass through (return false) so characters appear,
     // while the IME deletes + recommits on the word boundary.
     for (const key of ["t", "e", "h"]) {
-      const passThrough = await keyListener?.("input-assist-us", {
+      const passThrough = keyListener?.("input-assist-us", {
         key,
         type: "keydown",
       } as chrome.input.ime.KeyboardEvent);
-      expect(passThrough).toBe(false);
+      expect(passThrough).toBe(false); // synchronous boolean, not a Promise
     }
-    const spaceReturn = await keyListener?.("input-assist-us", {
+    const spaceReturn = keyListener?.("input-assist-us", {
       key: " ",
       type: "keydown",
     } as chrome.input.ime.KeyboardEvent);
     expect(spaceReturn).toBe(false);
+
+    // The correction runs asynchronously after the synchronous return.
+    await flush();
     expect(deleteSurroundingText).toHaveBeenCalled();
 
-    const consumed = await keyListener?.("input-assist-us", {
+    const consumed = keyListener?.("input-assist-us", {
       key: "Backspace",
       type: "keydown",
     } as chrome.input.ime.KeyboardEvent);

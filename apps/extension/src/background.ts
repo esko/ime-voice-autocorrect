@@ -20,7 +20,7 @@ export function registerInputAssist(
     createChromeImeAdapter(
       chromeApi,
       () => app.stateManager.getActiveContext(),
-      () => app.getActiveEngineId() ?? "input-assist-us",
+      () => app.getActiveEngineId() ?? "input-assist",
     );
   const imeUi = options.imeUi ?? createChromeImeUiAdapter(chromeApi);
   const app = createInputAssistApp({ ...options, imeAdapter, imeUi });
@@ -77,10 +77,12 @@ export function registerInputAssist(
     }
   });
 
-  // onKeyEvent must return true ONLY for keys the IME consumes. Returning true
-  // for a normal key swallows it (nothing types). We consume only a backspace
-  // that triggers an autocorrect undo; everything else passes through.
-  chromeApi.input.ime.onKeyEvent.addListener(async (engineId, keyData) => {
+  // This listener MUST be synchronous and return a real boolean. An async
+  // listener returns a (truthy) Promise, which ChromeOS treats as "key handled"
+  // and swallows EVERY keystroke. Return true only for keys we consume (a
+  // backspace that triggers an autocorrect undo); the autocorrect commit work is
+  // fired without awaiting so the return stays synchronous.
+  chromeApi.input.ime.onKeyEvent.addListener((engineId, keyData) => {
     if (keyData.type !== "keydown") {
       return false;
     }
@@ -106,7 +108,7 @@ export function registerInputAssist(
     if (key.length === 1) {
       const contextId = app.stateManager.getActiveContextId();
       if (contextId !== null) {
-        await app.onCharacterTyped(contextId, key);
+        void app.onCharacterTyped(contextId, key);
       }
     }
 

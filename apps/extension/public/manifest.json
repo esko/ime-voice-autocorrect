@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChromeOS Input Assist",
   "version": "0.0.1",
-  "description": "Input Assist US and Finnish with English autocorrect",
+  "description": "Input Assist — English autocorrect keyboard",
   "permissions": ["input", "storage"],
   "background": {
     "service_worker": "background.js",
@@ -10,20 +10,12 @@
   },
   "input_components": [
     {
-      "name": "Input Assist US",
+      "name": "Input Assist",
       "type": "ime",
-      "id": "input-assist-us",
-      "description": "US keyboard with Input Assist dictation and English autocorrect",
+      "id": "input-assist",
+      "description": "English autocorrect keyboard",
       "language": "en-US",
       "layouts": ["us::eng"]
-    },
-    {
-      "name": "Input Assist Finnish",
-      "type": "ime",
-      "id": "input-assist-fi",
-      "description": "Finnish keyboard with Input Assist dictation and English autocorrect",
-      "language": "fi",
-      "layouts": ["fi::fin"]
     }
   ]
 }
