@@ -166,13 +166,18 @@ silently replacing.
 is reinforced. ✅ The bigram `contextScore` is still TODO — it needs the previous
 word plumbed from surrounding text into `decide()`.
 
-### Phase 4 — Hunspell/nspell validator (deliberate dependency step)
+### Phase 4 — Hunspell/nspell validator (deliberate dependency step) ✅ done
 - Add `nspell` + a `wooorm/dictionaries` en_US Hunspell dictionary as the
   *validator*: SymSpell generates candidates, Hunspell validates them, and
   validates the original word (strong original-word protection).
 - Decide how to bundle the dictionary data into the MV3 service worker (size).
 **Done when:** valid-but-uncommon words are protected and candidate quality
-improves, with the engine still Chrome-agnostic.
+improves, with the engine still Chrome-agnostic. ✅ The engine defines a pure
+`Validator` interface (original-word protection + candidate filtering). The
+extension wraps nspell over the `dictionary-en` Hunspell dictionary, which ships
+as a packaged file (`public/dictionary/`, copied from the dep at build time, not
+committed) and is fetched by the service worker on start; the engine upgrades its
+validator once it loads (`app.setValidator`).
 
 ## Non-goals (for now)
 

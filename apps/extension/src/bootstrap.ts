@@ -1,5 +1,6 @@
 import { UserModel } from "@input-assist/autocorrect-core";
 import { registerInputAssist } from "./background.js";
+import { loadEnglishValidator } from "./autocorrect/nspellValidator.js";
 import { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import { ExtensionImePreferences } from "./storage/imePreferences.js";
 import { ExtensionUserModelStore } from "./storage/userModelStore.js";
@@ -29,6 +30,14 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
   void app.hydrateSettingsFromCache();
   void app.hydrateImePreferences();
   void userModelStore.load().then((data) => userModel.hydrate(data));
+
+  // Upgrade to the Hunspell validator once its bundled dictionary loads. Until
+  // then the frequency list alone drives corrections.
+  void loadEnglishValidator((path) => chromeApi.runtime.getURL(path))
+    .then((validator) => app.setValidator(validator))
+    .catch(() => {
+      /* dictionary unavailable — keep running without the validator */
+    });
 }
 
 if (typeof chrome !== "undefined" && chrome.runtime?.id) {

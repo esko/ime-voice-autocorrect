@@ -1,5 +1,6 @@
 import type { Dictionary } from "./dictionary.js";
 import type { UserModel } from "./learning.js";
+import type { Validator } from "./validator.js";
 import { decideCorrection, type CorrectionDecision } from "./decision.js";
 import { SymSpellIndex } from "./symspell.js";
 
@@ -24,12 +25,13 @@ export interface AutocorrectEngineOptions {
   personalDictionary?: readonly string[];
   ignoreList?: readonly string[];
   userModel?: UserModel;
+  validator?: Validator;
 }
 
 export function createAutocorrectEngine(
   options: AutocorrectEngineOptions,
 ): AutocorrectEngine {
-  const { dictionary, personalDictionary = [], ignoreList = [], userModel } = options;
+  const { dictionary, personalDictionary = [], ignoreList = [], userModel, validator } = options;
 
   let index = SymSpellIndex.build(dictionary.entries, {
     maxEditDistance: dictionary.maxEditDistance,
@@ -46,10 +48,10 @@ export function createAutocorrectEngine(
 
   return {
     decide(token) {
-      return decideCorrection(token, index, { ignored, model: userModel });
+      return decideCorrection(token, index, { ignored, model: userModel, validator });
     },
     correctToken(token) {
-      const decision = decideCorrection(token, index, { ignored, model: userModel });
+      const decision = decideCorrection(token, index, { ignored, model: userModel, validator });
       if (decision.action !== "replace") {
         return { kind: "unchanged", original: token };
       }

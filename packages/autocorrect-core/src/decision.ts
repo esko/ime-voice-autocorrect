@@ -1,5 +1,6 @@
 import type { SymSpellIndex } from "./symspell.js";
 import type { UserModel } from "./learning.js";
+import type { Validator } from "./validator.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -47,6 +48,8 @@ export interface DecideOptions {
   ignored?: ReadonlySet<string>;
   /** Per-user learned preferences (accepted/rejected corrections, kept words). */
   model?: UserModel;
+  /** Spell-validity oracle (Hunspell/nspell) for original protection + filtering. */
+  validator?: Validator;
 }
 
 /**
@@ -76,14 +79,17 @@ export function decideCorrection(
     return { action: "none" };
   }
 
-  // Valid means the exact word is known (Phase 4 adds Hunspell); valid originals
-  // are a strong baseline the best candidate must beat.
-  const originalIsValid = index.hasExact(normalized);
+  // Valid means the exact word is known in the frequency list or the validator
+  // (Hunspell) recognises it. Valid originals are real words: never auto-replace
+  // them (only offer alternatives).
+  const originalIsValid =
+    index.hasExact(normalized) || (options.validator?.isValid(normalized) ?? false);
 
   const cap = maxEditDistanceForLength(token.length);
   const ranked: RankedCandidate[] = index
     .lookup(normalized)
     .filter((candidate) => candidate.editDistance <= cap)
+    .filter((candidate) => options.validator?.isValid(candidate.term) ?? true)
     .map((candidate) => ({
       term: candidate.term,
       editDistance: candidate.editDistance,
@@ -105,11 +111,13 @@ export function decideCorrection(
   const marginOverOriginal = best.totalScore - originalScore;
   const marginOverSecond = best.totalScore - secondScore;
 
-  // A correction the user has previously undone is offered, never auto-applied.
+  // A correction the user has previously undone, or a token that is itself a
+  // real word, is offered but never auto-applied.
   const rejected = options.model?.wasRejected(token, best.term) ?? false;
+  const blockReplace = rejected || originalIsValid;
 
   if (
-    !rejected &&
+    !blockReplace &&
     conf >= AUTO_REPLACE_THRESHOLD &&
     marginOverOriginal >= MIN_MARGIN_OVER_ORIGINAL &&
     marginOverSecond >= MIN_MARGIN_OVER_SECOND

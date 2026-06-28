@@ -7,6 +7,7 @@ import {
   type Dictionary,
   type RankedCandidate,
   type UserModel,
+  type Validator,
 } from "@input-assist/autocorrect-core";
 
 export interface ImeTextAdapter {
@@ -25,6 +26,7 @@ export interface AutocorrectImeAdapterOptions {
   personalDictionary?: readonly string[];
   ignoreList?: readonly string[];
   userModel?: UserModel;
+  validator?: Validator;
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
@@ -40,6 +42,9 @@ export class AutocorrectImeAdapter {
   private engine: AutocorrectEngine;
   private readonly dictionary: Dictionary;
   private readonly userModel?: UserModel;
+  private validator?: Validator;
+  private personalDictionary: readonly string[];
+  private ignoreList: readonly string[];
   private enabled: boolean;
   private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
   private readonly onCorrectionUndone?: AutocorrectImeAdapterOptions["onCorrectionUndone"];
@@ -51,15 +56,23 @@ export class AutocorrectImeAdapter {
   ) {
     this.dictionary = options.dictionary ?? createCoreEnglishDictionary();
     this.userModel = options.userModel;
+    this.validator = options.validator;
+    this.personalDictionary = options.personalDictionary ?? [];
+    this.ignoreList = options.ignoreList ?? [];
     this.enabled = options.enabled ?? true;
     this.onCorrectionApplied = options.onCorrectionApplied;
     this.onCorrectionUndone = options.onCorrectionUndone;
     this.onSuggest = options.onSuggest;
-    this.engine = createAutocorrectEngine({
+    this.engine = this.buildEngine();
+  }
+
+  private buildEngine(): AutocorrectEngine {
+    return createAutocorrectEngine({
       dictionary: this.dictionary,
-      personalDictionary: options.personalDictionary ?? [],
-      ignoreList: options.ignoreList ?? [],
+      personalDictionary: this.personalDictionary,
+      ignoreList: this.ignoreList,
       userModel: this.userModel,
+      validator: this.validator,
     });
   }
 
@@ -71,17 +84,19 @@ export class AutocorrectImeAdapter {
     return this.enabled;
   }
 
+  /** Upgrade the spell validator (e.g. once the Hunspell dictionary loads). */
+  setValidator(validator: Validator): void {
+    this.validator = validator;
+    this.engine = this.buildEngine();
+  }
+
   updateWordLists(lists: AutocorrectWordLists): void {
-    const personalDictionary = [
+    this.personalDictionary = [
       ...(lists.personalDictionary ?? []),
       ...(lists.technicalDictionary ?? []),
     ];
-    this.engine = createAutocorrectEngine({
-      dictionary: this.dictionary,
-      personalDictionary,
-      ignoreList: lists.ignoreList ?? [],
-      userModel: this.userModel,
-    });
+    this.ignoreList = lists.ignoreList ?? [];
+    this.engine = this.buildEngine();
   }
 
   async onCharacterTyped(contextId: number, textBeforeCursor: string, character: string): Promise<void> {

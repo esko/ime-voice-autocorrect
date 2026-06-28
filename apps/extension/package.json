@@ -4,16 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node scripts/copy-dictionary.mjs && vite build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src"
   },
   "dependencies": {
-    "@input-assist/autocorrect-core": "workspace:*"
+    "@input-assist/autocorrect-core": "workspace:*",
+    "nspell": "^2.1.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.304",
+    "dictionary-en": "^4.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.6",
     "vitest": "^2.1.8"

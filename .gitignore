@@ -5,6 +5,8 @@ scratch.ts
 scratch.*.ts
 *.scratch.ts
 
-# IWA signing key (deterministic origin depends on it — keep a private backup)
-key.pem
-*.swbn
+# Hunspell dictionary copied from the dictionary-en package at build time
+apps/extension/public/dictionary/
+
+# Stray private keys (never commit)
+*.pem
