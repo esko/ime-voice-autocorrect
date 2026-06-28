@@ -3,6 +3,7 @@ import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
 import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
+import type { HardCorrections } from "./hardCorrections.js";
 import { decideCorrection, type CorrectionDecision } from "./decision.js";
 import { SymSpellIndex } from "./symspell.js";
 
@@ -35,6 +36,7 @@ export interface AutocorrectEngineOptions {
   validator?: Validator;
   context?: ContextModel;
   confusion?: ConfusionSets;
+  hardCorrections?: HardCorrections;
 }
 
 export function createAutocorrectEngine(
@@ -48,6 +50,7 @@ export function createAutocorrectEngine(
     validator,
     context,
     confusion,
+    hardCorrections,
   } = options;
 
   let index = SymSpellIndex.build(dictionary.entries, {
@@ -63,7 +66,14 @@ export function createAutocorrectEngine(
 
   const ignored = new Set(ignoreList);
 
-  const baseOptions = { ignored, model: userModel, validator, context, confusion };
+  const baseOptions = {
+    ignored,
+    model: userModel,
+    validator,
+    context,
+    confusion,
+    hardCorrections,
+  };
 
   return {
     decide(token, decideContext) {

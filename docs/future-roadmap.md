@@ -52,7 +52,9 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
      way so keyboard/context ranking still applies).
    - Mine the `.aff` `REP`/`MAP`/`PHONE`/`KEY` rules for extra signals
      (common replacements, similar characters, phonetic, keyboard hints).
-   - A small hand-written hard-typo map for stubborn cases.
+   - ✅ A curated hard-typo map (`createCommonHardCorrections`): ~80 common
+     misspellings corrected with high confidence, respecting user rejections and
+     unsafe fields.
 
 4. **True weighted edit distance (Level 2 refinement).** Today keyboard
    plausibility is a post-hoc score; optionally fold it into the distance metric

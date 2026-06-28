@@ -10,6 +10,8 @@ export { createNgramContext, createCommonContext } from "./context.js";
 export type { ContextModel } from "./context.js";
 export { createConfusionSets, createCommonConfusionSets } from "./confusion.js";
 export type { ConfusionSets } from "./confusion.js";
+export { createHardCorrections, createCommonHardCorrections } from "./hardCorrections.js";
+export type { HardCorrections } from "./hardCorrections.js";
 export type { DecideContext } from "./autocorrectEngine.js";
 export { createCoreEnglishDictionary } from "./coreEnglishDictionary.js";
 export { createTestDictionary } from "./dictionary.js";

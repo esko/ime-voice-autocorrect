@@ -3,6 +3,7 @@ import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
 import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
+import type { HardCorrections } from "./hardCorrections.js";
 import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
@@ -61,6 +62,8 @@ export interface DecideOptions {
   previousWords?: readonly string[];
   /** Real-word confusion sets (form/from, their/there, …). */
   confusion?: ConfusionSets;
+  /** Curated common-misspelling map applied with high confidence. */
+  hardCorrections?: HardCorrections;
 }
 
 /** Minimum context advantage for a confused alternative to be offered. */
@@ -155,6 +158,19 @@ export function decideCorrection(
     index.hasExact(normalized) || (options.validator?.isValid(normalized) ?? false);
   if (originalIsValid) {
     return confusionDecision(token, normalized, options) ?? { action: "none" };
+  }
+
+  // Curated common misspellings are corrected with high confidence, unless the
+  // user has undone this exact correction before.
+  const hard = options.hardCorrections?.correctionFor(normalized);
+  if (hard && hard !== normalized && !(options.model?.wasRejected(token, hard) ?? false)) {
+    return {
+      action: "replace",
+      original: token,
+      replacement: restoreCase(token, hard),
+      confidence: 1,
+      candidates: [{ term: hard, editDistance: damerauLevenshtein(normalized, hard), frequency: 0, totalScore: 0 }],
+    };
   }
 
   const cap = maxEditDistanceForLength(token.length);
