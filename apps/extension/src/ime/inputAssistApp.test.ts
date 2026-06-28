@@ -3,32 +3,16 @@ import { createInputAssistApp } from "./inputAssistApp.js";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
 import { ExtensionImePreferences } from "../storage/imePreferences.js";
 
+const noopAdapter = {
+  getContextId: () => 1,
+  commitText: async () => true,
+  deleteSurroundingText: async () => true,
+};
+
 describe("createInputAssistApp", () => {
-  it("auto-launches recorder before dictation when bridge is disconnected", async () => {
-    const launchRecorder = vi.fn(async () => {});
-    const app = createInputAssistApp({
-      allowedOrigin: "isolated-app://abc",
-      launchRecorder,
-      imeAdapter: {
-        hasValidContext: () => true,
-        getContextType: () => "text",
-        getContextToken: () => ({ contextId: 1, generation: 1 }),
-        getContextId: () => 1,
-        commitText: async () => true,
-        deleteSurroundingText: async () => true,
-      },
-      createSessionId: () => "sess-1",
-    });
-
-    app.onFocus("input-assist-us", { contextID: 1, type: "text" } as chrome.input.ime.InputContext);
-    await app.dictation.onDictationChordDown();
-
-    expect(launchRecorder).toHaveBeenCalledOnce();
-  });
-
   it("applies cached shared settings to autocorrect on startup", async () => {
     const memory: Record<string, unknown> = {
-      sharedSettings: {
+      wordLists: {
         personalDictionary: ["teh"],
         ignoreList: [],
         technicalDictionary: [],
@@ -43,13 +27,8 @@ describe("createInputAssistApp", () => {
     });
     const commits: string[] = [];
     const app = createInputAssistApp({
-      allowedOrigin: "isolated-app://abc",
-      launchRecorder: async () => {},
       settingsCache: cache,
       imeAdapter: {
-        hasValidContext: () => true,
-        getContextType: () => "text",
-        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
         commitText: async (text) => {
           commits.push(text);
@@ -65,12 +44,13 @@ describe("createInputAssistApp", () => {
       await app.onCharacterTyped(1, key);
     }
 
+    // "teh" is in the personal dictionary, so it is never corrected.
     expect(commits).toEqual([]);
   });
 
-  it("restores ime menu toggles from persisted preferences", async () => {
+  it("restores the autocorrect toggle from persisted preferences", async () => {
     const memory: Record<string, unknown> = {
-      imePreferences: { autocorrectEnabled: false, dictationEnabled: false },
+      imePreferences: { autocorrectEnabled: false },
     };
     const preferences = new ExtensionImePreferences({
       get: async (keys) =>
@@ -81,41 +61,32 @@ describe("createInputAssistApp", () => {
     });
     const setMenuItems = vi.fn();
     const app = createInputAssistApp({
-      allowedOrigin: "isolated-app://abc",
-      launchRecorder: async () => {},
       imePreferences: preferences,
       imeUi: {
         setMenuItems,
         setAssistiveWindowProperties: () => {},
       },
-      imeAdapter: {
-        hasValidContext: () => true,
-        getContextType: () => "text",
-        getContextToken: () => ({ contextId: 1, generation: 1 }),
-        getContextId: () => 1,
-        commitText: async () => true,
-        deleteSurroundingText: async () => true,
-      },
+      imeAdapter: noopAdapter,
     });
 
     await app.hydrateImePreferences();
+    // Menus only paint once an engine is active.
+    expect(setMenuItems).not.toHaveBeenCalled();
+    app.onActivate("input-assist-us");
 
     expect(app.autocorrect.isEnabled()).toBe(false);
-    expect(app.dictation.isDictationEnabled()).toBe(false);
     expect(setMenuItems).toHaveBeenCalled();
   });
 
-  it("blocks dictation in password fields", async () => {
-    const launchRecorder = vi.fn(async () => {});
+  it("does not autocorrect in password fields", async () => {
+    const commits: string[] = [];
     const app = createInputAssistApp({
-      allowedOrigin: "isolated-app://abc",
-      launchRecorder,
       imeAdapter: {
-        hasValidContext: () => true,
-        getContextType: () => "password",
-        getContextToken: () => ({ contextId: 1, generation: 1 }),
         getContextId: () => 1,
-        commitText: async () => true,
+        commitText: async (text) => {
+          commits.push(text);
+          return true;
+        },
         deleteSurroundingText: async () => true,
       },
     });
@@ -124,8 +95,10 @@ describe("createInputAssistApp", () => {
       contextID: 1,
       type: "password",
     } as chrome.input.ime.InputContext);
-    await app.dictation.onDictationChordDown();
+    for (const key of ["t", "e", "h", " "]) {
+      await app.onCharacterTyped(1, key);
+    }
 
-    expect(launchRecorder).not.toHaveBeenCalled();
+    expect(commits).toEqual([]);
   });
 });

@@ -1,48 +1,27 @@
 # Security and privacy
 
-## Secrets
+## Local-only
 
-- ASR API key lives only in the recorder IWA.
-- Extension receives only non-secret settings.
-- Logs/debug bundles must redact:
-  - API keys
-  - tokens
-  - auth headers
-  - full provider URLs containing tokens
-  - transcript text if user chooses redacted debug export
+- All correction logic runs locally in the extension/engine. No network calls,
+  no remote services, no telemetry.
+- The user dictionary and learned corrections live in `chrome.storage.local`,
+  never sent anywhere.
 
-## Microphone
+## Text the IME can see
 
-- Mic capture happens only inside recorder IWA.
-- Dictation starts only from explicit keyboard command.
-- Active recording must be visibly indicated by recorder window state.
-- Stopping/cancelling must stop tracks and close audio graph.
+- A ChromeOS IME is highly privileged: it sees keystrokes and surrounding text
+  across ChromeOS apps. Keep that data in memory only for the current token /
+  correction; do not persist raw typed text.
+- Debug/diagnostic exports must redact any captured text by default.
 
-## Text insertion
+## Text insertion safety
 
-- Never commit text if IME context is invalid.
-- Never commit text after blur.
+- Never commit text if the IME context is invalid or after `onBlur`.
 - Never silently switch to another target context.
-- Disable dictation in password fields; autocorrect may continue.
-- Use conservative behavior in URL/email/number fields.
+- Bypass autocorrect entirely in password fields and other unsafe contexts
+  (url, email, number) and in code/identifier-like text.
 
-## Network
+## Permissions
 
-- External ASR provider is expected.
-- Do not send audio before session start is acknowledged.
-- Reconnect only on transient errors.
-- Do not reconnect after user stop/cancel.
-- Bound flush waits.
-
-## Debugging
-
-- Debug bundle should include:
-  - extension version
-  - IWA version
-  - protocol version
-  - bridge state
-  - recorder state
-  - last redacted ASR error
-  - last state transitions
-  - current Chrome flags manually recorded by user
-- Debug bundle must not include API key by default.
+- Only `"input"` and `"storage"` are requested. No host permissions, no
+  `externally_connectable`, no network permissions.

@@ -2,84 +2,53 @@
 
 ## User goal
 
-Create a discreet and quick ChromeOS input assistant for typing assistance and dictation.
-
-The user switches between US and Finnish keyboard layouts. The product must replace those with assisted ChromeOS IME entries:
+A discreet, fast ChromeOS typing aid. The user switches between US and Finnish
+keyboard layouts; the product replaces those with assisted ChromeOS IME entries:
 
 - `Input Assist US`
 - `Input Assist Finnish`
 
-The product must work across ChromeOS applications through the ChromeOS input method system, not only inside browser web pages.
+It must work across ChromeOS applications through the ChromeOS input method
+system, not only inside browser web pages.
 
 ## In scope
 
 ### IME extension
 
-- Manifest V3 Chrome extension.
-- ChromeOS-only IME.
-- Two `input_components`.
-- Shared input assistant engine.
-- English-only autocorrect.
-- Dictation keyboard controls.
-- Automatic text insertion using `chrome.input.ime.commitText`.
-- Surrounding-text tracking using `onSurroundingTextChanged`.
-- Text replacement using `deleteSurroundingText` + `commitText`.
+- Manifest V3 ChromeOS-only IME.
+- Two `input_components` (US, Finnish), one layout each.
+- Normal keystrokes pass through; the IME tracks recent text.
+- Surrounding-text tracking via `onSurroundingTextChanged`.
+- Text replacement via `deleteSurroundingText` + `commitText`.
+- Undo-on-backspace immediately after a correction.
 - Assistive undo UI where supported.
-- IME menu entries for settings/status only.
+- IME menu for the autocorrect toggle / status.
 
-### Recorder IWA
+### Autocorrect engine (`autocorrect-core`)
 
-- One visible IWA window.
-- Tiny unframed/borderless UI.
-- Status-only during dictation.
-- External streaming ASR.
-- Microphone capture.
-- ASR auth/config stored in IWA settings.
-- Settings page inside the IWA.
-- Web-app-initiated bridge to extension.
-- No required click for dictation operation.
+- English only; same engine for both IME entries.
+- Word-level correction on a delimiter, not on every keystroke.
+- SymSpell candidate generation + keyboard-typo-aware scoring.
+- Margin-based confidence with three outcomes: replace / suggest / none.
+- Conservative by default: a bad autocorrect is worse than none.
+- User dictionary + learned correction preferences (`chrome.storage.local`).
+- Bypass in unsafe fields and code/url/email/identifier-like text.
+- Chrome-agnostic: no `chrome.*` imports.
 
-### Autocorrect
-
-- English only.
-- Works in both US and Finnish IME entries.
-- Conservative behavior for Finnish text and technical text.
-- Undo immediately after correction.
-- Personal dictionary.
-- Ignore list.
-- Domain/technical word list.
-- Confidence thresholds.
-- Dictation is blocked in unsafe field types; autocorrect continues to run there.
-
-### Dictation
-
-- Keyboard-controlled start/stop/cancel/finalize.
-- External streaming ASR.
-- Partial/final transcript state machine.
-- Insert final transcript automatically when possible.
-- Transcript cleanup before commit.
-- Dictated text is not run through the autocorrect engine (typing only).
-- Finnish dictation may insert raw transcript without Finnish spell correction.
-- Reuse the dictation architecture from `esko/tabby-voice-dictation`, adapted from terminal delivery to IME delivery.
+See `docs/autocorrect-engine-plan.md` for the scoring model and phased plan.
 
 ## Out of scope
 
-- Tabby integration.
-- Content-script insertion architecture.
-- Native helper app.
-- Legacy Chrome App.
-- Android app.
-- Linux/Crostini integration.
+- Voice dictation (removed — recorder IWA, extension↔IWA bridge, ASR).
 - Finnish autocorrect.
-- LLM-based autocorrect.
-- Mouse-controlled dictation.
-- Separate puck window.
-- General browser compatibility.
-- Fallback UI modes.
+- LLM- or grammar-based correction.
+- Content-script insertion, native helper app, legacy Chrome App.
+- Android / Linux-Crostini integration.
+- General cross-browser compatibility, fallback UI modes.
 
-## Explicit non-goals
+## Non-goals
 
-- Do not attempt to make an IWA/PWA window truly unfocusable. No such Chrome API is assumed.
-- Do not rely on click-through window behavior.
-- Do not require the recorder UI to be clicked while dictating.
-- Do not use clipboard as the normal insertion path.
+- Do not use the clipboard as the normal insertion path.
+- Do not autocorrect aggressively; prefer suggesting or doing nothing when
+  confidence or margin is low.
+- Do not run language logic in the extension layer; keep it in `autocorrect-core`.

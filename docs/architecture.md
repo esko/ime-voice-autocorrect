@@ -4,199 +4,94 @@
 
 ```text
 ChromeOS Input Assist
-├── extension/
-│   ├── Manifest V3 ChromeOS IME
-│   ├── Input Assist US engine
-│   ├── Input Assist Finnish engine
-│   ├── English autocorrect
-│   ├── dictation key handling
-│   ├── active context tracking
-│   ├── commit/delete text adapter
-│   └── bridge endpoint for recorder IWA
-│
-└── recorder-iwa/
-    ├── one tiny unframed IWA window
-    ├── mic capture
-    ├── external streaming ASR client
-    ├── status UI
-    ├── settings page
-    └── bridge client to extension
+└── apps/extension/                      Manifest V3 ChromeOS IME
+    ├── Input Assist US / Finnish input methods
+    ├── active context tracking (focus/blur/surrounding text)
+    ├── key handling (pass-through + boundary detection)
+    ├── commit / delete text adapter
+    ├── undo-on-backspace
+    └── IME menu (autocorrect toggle)
+
+packages/autocorrect-core/              pure engine, no chrome.* imports
+    ├── tokenizer
+    ├── SymSpell candidate generator
+    ├── keyboard-neighbour scoring
+    ├── ignore rules (code/url/email/identifiers)
+    └── confidence / ranking / decision
 ```
 
 ## Responsibility split
 
-### IME extension owns
+**The IME extension owns** the active ChromeOS input context, key handling while
+the IME is active, text insertion/replacement (`commitText` /
+`deleteSurroundingText`), undo, surrounding-text tracking, and the IME menu. It
+captures the token and context and calls the engine — it contains no spelling
+logic itself.
 
-- Active ChromeOS input context.
-- Keystroke handling while IME is active.
-- Autocorrect.
-- Dictation hotkeys/chords.
-- Text insertion.
-- Text deletion/replacement.
-- Undo for corrections.
-- Receiving final transcript and committing it.
+**`autocorrect-core` owns** all language logic: tokenization, candidate
+generation, scoring, confidence, and the replace/suggest/none decision. It is
+Chrome-agnostic and unit-tested outside ChromeOS. **No `chrome.*` imports.**
 
-### Recorder IWA owns
-
-- Microphone permission and capture.
-- ASR provider credentials/config.
-- Streaming connection.
-- Partial/final transcript processing from provider.
-- Visual status.
-- Settings UI.
-- Initial handshake with extension.
-
-## Why this split exists
-
-The IWA can provide a cleaner one-window recorder UI than an extension popup, but the IWA cannot reliably insert text into all ChromeOS fields. The IME extension is the component with access to the active input context.
-
-The IWA window cannot be assumed to be non-focusing. Therefore normal dictation controls must be keyboard-only through the IME.
-
-## Prior dictation architecture to reuse
-
-`esko/tabby-voice-dictation` already implements the right dictation-side architecture:
-
-```text
-DictationSession
-├── BackendSessionRegistry
-├── AudioPipeline
-├── RealtimeSocket
-├── realtimeProtocol
-├── TranscriptDelivery
-├── transcriptFormatter
-└── OverlayPort
-```
-
-For this project, adapt it as:
-
-```text
-DictationSession
-├── AsrSessionRegistry
-├── AudioPipeline                    # in recorder IWA
-├── RealtimeSocket                   # in recorder IWA
-├── realtimeProtocol                 # pure shared package
-├── TranscriptDelivery               # pure shared package
-├── transcriptFormatter              # pure shared package
-├── RecorderStatusPort               # recorder IWA status
-└── ImeTextPort                      # extension commit/delete operations
-```
-
-Do not implement live partial insertion by default. In this ChromeOS-wide app, partials should update only the tiny recorder window to avoid constantly mutating arbitrary app text fields. Commit final transcript when the ASR provider finalizes or the user stops recording.
-
-Live partial insertion may be implemented only as an explicit setting, and must use `deleteSurroundingText` + `commitText` rather than synthetic keystrokes.
-
-## Runtime flow
-
-### Startup bridge
-
-```text
-1. Extension starts.
-2. IWA starts.
-3. IWA calls chrome.runtime.connect(extensionId).
-4. Extension validates sender and protocol version.
-5. Extension stores the Port.
-6. Extension sends state snapshots over the stored Port.
-```
-
-The IWA/PWA must initiate the bridge. The extension cannot initiate the first connection to the web app.
-
-### Typing/autocorrect
+## Typing / autocorrect flow
 
 ```text
 1. User selects Input Assist US or Input Assist Finnish.
-2. IME receives focus context.
-3. Normal keystrokes pass through unless special handling is needed.
-4. IME tracks recent text via key events and surrounding text.
-5. On word boundary, autocorrect checks the previous token.
-6. If high-confidence correction exists:
-   a. deleteSurroundingText(previous token)
+2. IME receives the focus context (onFocus).
+3. Normal keystrokes pass through (onKeyEvent returns false) and are tracked.
+4. Recent text is tracked via key events and onSurroundingTextChanged.
+5. On a word boundary, the engine evaluates the previous token.
+6. If the engine returns `replace` (high confidence):
+   a. deleteSurroundingText(previous token length)
    b. commitText(corrected token)
-   c. record undo entry
-   d. show minimal assistive undo/correction status
+   c. record an undo entry
+   d. show minimal assistive undo status
+   If it returns `suggest`, show a candidate window (Phase 2).
+   If `none`, do nothing.
+7. Backspace immediately after a correction restores the original token.
 ```
 
-### Dictation
+## Key-event contract (important)
 
-```text
-1. User presses IME dictation chord.
-2. Extension sends START_SESSION to IWA over established Port.
-3. IWA starts mic capture and ASR streaming.
-4. IWA sends PARTIAL_TRANSCRIPT events to extension and updates status UI.
-5. User releases/presses dictation chord to finalize.
-6. Extension sends STOP_SESSION to IWA.
-7. IWA flushes the ASR stream and sends FINAL_TRANSCRIPT.
-8. Extension performs transcript cleanup.
-9. Extension optionally applies English autocorrect to English transcript.
-10. Extension commits final text using commitText(contextID).
-```
+`chrome.input.ime.onKeyEvent` must return **`true` only for keys the IME
+consumes**. Returning `true` for a normal key swallows it (nothing types). The
+extension returns `false` (pass-through) for all normal typing, and `true` only
+for a Backspace that triggers an autocorrect undo.
+
+## Menu / engine activation
+
+`setMenuItems` is only valid for the *currently active* engine. The extension
+tracks the active engine (`onActivate` / `onDeactivated`) and repaints the menu
+only when an engine is active.
 
 ## Data flow
 
 ```text
-Keyboard events
-  -> IME key router
-  -> autocorrect/dictation command detector
-  -> Chrome input context operations
+Keyboard + context events
+  -> IME key/focus handlers (apps/extension)
+  -> InputStateManager (token + context state)
+  -> autocorrect-core engine.decide(token, ...)
+  -> chrome.input.ime commit / delete / candidates
 
-Mic audio
-  -> IWA recorder
-  -> ASR provider
-  -> IWA transcript state
-  -> extension bridge
-  -> IME commit
-
-Settings
-  -> IWA settings page
-  -> IWA storage
-  -> bridge settings snapshot
-  -> extension storage/cache
+Settings / user dictionary
+  -> options page / chrome.storage.local
+  -> engine word lists + learned corrections
 ```
 
-## Focus policy
-
-- The recorder IWA may receive focus if clicked.
-- Therefore, normal recording control must not require clicking it.
-- During active dictation, the IWA UI must disable/hide clickable controls.
-- The extras button may be clickable only while idle.
-- If focus is lost and IME context invalidates, the dictation session should cancel or mark insertion unavailable; do not silently paste elsewhere.
-
-## Suggested repo layout
+## Repo layout
 
 ```text
-chromeos-input-assist/
+ime-voice-autocorrect/
 ├── AGENTS.md
+├── CONTEXT.md
 ├── package.json
 ├── pnpm-workspace.yaml
-├── tsconfig.base.json
 ├── apps/
-│   ├── extension/
-│   │   ├── manifest.json
-│   │   ├── src/
-│   │   │   ├── background.ts
-│   │   │   ├── ime/
-│   │   │   ├── autocorrect/
-│   │   │   ├── dictation/
-│   │   │   ├── bridge/
-│   │   │   └── storage/
-│   │   └── tests/
-│   │
-│   └── recorder-iwa/
-│       ├── .well-known/
-│       │   └── manifest.webmanifest
-│       ├── src/
-│       │   ├── app.ts
-│       │   ├── ui/
-│       │   ├── audio/
-│       │   ├── asr/
-│       │   ├── bridge/
-│       │   └── settings/
-│       └── tests/
-│
+│   └── extension/
+│       ├── public/manifest.json
+│       └── src/{background,bootstrap}.ts, ime/, autocorrect/, storage/, diagnostics/
 ├── packages/
-│   ├── protocol/
-│   ├── autocorrect-core/
-│   ├── dictation-core/
-│   └── test-fixtures/
-│
+│   └── autocorrect-core/
 └── docs/
 ```
+
+See `docs/autocorrect-engine-plan.md` for how the engine evolves.

@@ -41,12 +41,6 @@ importers:
       '@input-assist/autocorrect-core':
         specifier: workspace:*
         version: link:../../packages/autocorrect-core
-      '@input-assist/dictation-core':
-        specifier: workspace:*
-        version: link:../../packages/dictation-core
-      '@input-assist/protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocol
     devDependencies:
       '@types/chrome':
         specifier: ^0.0.304
@@ -61,57 +55,7 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9
 
-  apps/recorder-iwa:
-    dependencies:
-      '@input-assist/autocorrect-core':
-        specifier: workspace:*
-        version: link:../../packages/autocorrect-core
-      '@input-assist/protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocol
-    devDependencies:
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      vite:
-        specifier: ^6.0.6
-        version: 6.4.3
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.9
-
   packages/autocorrect-core:
-    devDependencies:
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.9
-
-  packages/dictation-core:
-    devDependencies:
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.9
-
-  packages/protocol:
-    dependencies:
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.9
-
-  packages/test-fixtures:
     devDependencies:
       typescript:
         specifier: ^5.7.2

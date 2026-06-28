@@ -1,78 +1,45 @@
-# ChromeOS Input Assist — Agent Handoff
+# ChromeOS Input Assist
 
-This bundle contains the full implementation handoff for a personal ChromeOS-only input assistant.
+A personal **ChromeOS autocorrect keyboard**: a Manifest V3 ChromeOS IME
+extension that offers English autocorrect on US and Finnish layouts.
 
-It is **not an MVP plan**. All functionality described here is required for the first complete release.
+- Two IME input methods — `Input Assist US` and `Input Assist Finnish` — each
+  mapped to one keyboard layout.
+- English autocorrect applied at word boundaries, with undo-on-backspace.
+- A reusable, Chrome-agnostic autocorrect engine
+  (`packages/autocorrect-core`): SymSpell candidate generation + a
+  confidence/ranking layer. The extension is a thin `chrome.input.ime` wrapper.
 
-## Product summary
+> Scope note: voice dictation (recorder IWA, extension↔IWA bridge, ASR) was part
+> of an earlier design and has been removed. See `docs/autocorrect-engine-plan.md`.
 
-Build a ChromeOS input system with:
+## Layout
 
-- A Manifest V3 ChromeOS IME extension.
-- Two IME entries:
-  - `Input Assist US`
-  - `Input Assist Finnish`
-- English-only autocorrect.
-- Keyboard-controlled dictation using an external streaming ASR API.
-- Automatic text insertion into the active ChromeOS text field through `chrome.input.ime`.
-- One visible recorder UI: a tiny unframed/borderless Isolated Web App window.
-- No Tabby integration.
-- No content-script insertion path.
-- No legacy Chrome App.
-- No compatibility fallbacks.
+```
+apps/extension            MV3 ChromeOS IME extension (the keyboard)
+packages/autocorrect-core  pure autocorrect engine (no chrome.* imports)
+docs/                      plan, architecture, ADRs, install + test notes
+```
 
-## Prior repo to study
-
-Before implementing dictation, study:
-
-- `https://github.com/esko/tabby-voice-dictation`
-
-Use it as the model for the ASR runtime and dictation lifecycle:
-
-- ports-and-adapters architecture
-- `DictationSession` lifecycle
-- `AudioPipeline`
-- `RealtimeSocket`
-- `realtimeProtocol`
-- `TranscriptDelivery`
-- `transcriptFormatter`
-- client-side noise gate
-- push-to-talk/toggle activation modes
-- partial/final transcript handling
-- `scratch that` / `undo` command behavior
-
-Do **not** copy the Tabby injection layer. Replace terminal delivery with ChromeOS IME context delivery.
-
-## Hard constraints
-
-- ChromeOS only.
-- Personal use only.
-- Chrome flags / experimental APIs are allowed and expected.
-- The recorder UI must be a **single tiny IWA window**.
-- Recording is controlled by keyboard/IME chords, not mouse clicks.
-- The recorder window must be treated as passive status UI during dictation.
-- Only a small extras/menu button may be clickable, and only when idle.
-- Clicking the recorder may focus it; implementation must not rely on any unavailable “unfocusable PWA/IWA” behavior.
-- Automatic insertion is required whenever the ChromeOS IME context remains valid.
-- Clipboard is not the normal path; it may only be used for explicit diagnostics/manual recovery.
-
-## Start here
-
-1. Read `AGENTS.md`.
-2. Read `docs/requirements.md`.
-3. Read `docs/architecture.md`.
-4. Read `docs/prior-tabby-repo-notes.md`.
-5. Read ADRs in `docs/adr/`.
-6. Implement from `docs/implementation-plan.md`.
-7. Track work using `docs/github-issues.md`.
-
-## Development
+## Develop
 
 ```fish
 pnpm install
-pnpm test
 pnpm typecheck
+pnpm lint
+pnpm test
 pnpm build
 ```
 
-Load `apps/extension/dist` as an unpacked ChromeOS IME extension and install the recorder IWA from `apps/recorder-iwa/dist` per `docs/chromeos-install-and-flags.md`.
+Load `apps/extension/dist` as an unpacked extension and add `Input Assist US` /
+`Input Assist Finnish` in ChromeOS input settings. See
+`docs/chromeos-install-and-flags.md` for the install steps and
+`docs/manual-test-plan.md` for on-device checks.
+
+## Where to start
+
+- `docs/autocorrect-engine-plan.md` — the engine vision, scoring model, and the
+  phased build plan (start at Phase 1).
+- `AGENTS.md` — working agreement and architecture rules.
+- `CONTEXT.md` — domain language.
+- `docs/adr/` — architecture decisions.

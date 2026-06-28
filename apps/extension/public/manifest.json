@@ -2,11 +2,8 @@
   "manifest_version": 3,
   "name": "ChromeOS Input Assist",
   "version": "0.0.1",
-  "description": "Input Assist US and Finnish with English autocorrect and dictation",
+  "description": "Input Assist US and Finnish with English autocorrect",
   "permissions": ["input", "storage"],
-  "externally_connectable": {
-    "matches": ["isolated-app://*/*"]
-  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

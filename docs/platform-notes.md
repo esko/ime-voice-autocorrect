@@ -1,68 +1,38 @@
 # Platform notes and source facts
 
-These are implementation facts that must be validated on the target Chromebook during development.
+Implementation facts to validate on the target Chromebook during development.
 
-## ChromeOS IME
+## ChromeOS IME (`chrome.input.ime`)
 
-- `chrome.input.ime` is ChromeOS-only.
-- It is used to implement a custom ChromeOS IME.
-- It can handle keystrokes, set composition, manage candidate windows, and commit text.
-- It requires the `"input"` extension permission.
-- `InputContext.contextID` targets text operations and becomes invalid when `onBlur` is called.
-- `commitText` commits provided text to the current input context.
-- `deleteSurroundingText` deletes text around the caret.
-- Assistive window buttons include `undo` and `addToDictionary`.
-
-## IME menu and assistive undo
-
-- Extension registers menu items for dictation status, recorder status, settings hint, and autocorrect/dictation toggles via `chrome.input.ime.setMenuItems`.
-- After autocorrect replaces a token, extension shows the ChromeOS undo assistive window via `setAssistiveWindowProperties`.
-- Verify both behaviors on the target Chromebook; typings in `@types/chrome` may differ slightly from runtime event shapes.
+- ChromeOS-only; requires the `"input"` permission.
+- Handles keystrokes, composition, candidate windows, and committed text.
+- `InputContext.contextID` targets text operations and becomes invalid on
+  `onBlur`.
+- `commitText` commits text to the current input context;
+  `deleteSurroundingText` deletes around the caret.
+- `onKeyEvent` returns a boolean: **`true` consumes the key (it is swallowed);
+  `false` passes it through** (the character types normally). Return `true` only
+  for keys the IME actually handles.
+- A key's physical identity is `keyData.code` (e.g. `"AltRight"`); `keyData.key`
+  is the layout-dependent value (e.g. `"Alt"` / `"AltGraph"`). Match physical
+  keys on `code`, characters on `key`.
+- `setMenuItems` only works for the **currently active** engine. Track
+  `onActivate` / `onDeactivated` and repaint menus only while active. Calling it
+  otherwise throws "The engine is not active."
+- Assistive window buttons include `undo` and `addToDictionary`
+  (`setAssistiveWindowProperties`).
+- `@types/chrome` shapes may differ slightly from runtime; verify on device.
 
 ## input_components
 
-- Define two `input_components`.
-- ChromeOS supports one layout per input method.
-- Use one layout per component.
-- For layouts, use the ChromeOS layout IDs that work on the target Chromebook.
-- Initial candidates:
-  - US: `us::eng`
-  - Finnish: `fi::fin`
-- If the manifest requires `xkb:` prefixed IDs in runtime, document the exact accepted strings.
+- Two `input_components` (US, Finnish); ChromeOS supports one layout per input
+  method.
+- Initial layout IDs: US `us::eng`, Finnish `fi::fin`. If the runtime requires
+  `xkb:`-prefixed IDs, document the exact accepted strings here.
 
-## IWA
+## Extension loading on ChromeOS
 
-- IWAs are bundled, versioned, signed web apps using the `isolated-app://` scheme.
-- IWA dev mode is required for local testing.
-- Enable `chrome://flags/#enable-isolated-web-app-dev-mode`.
-- Install/test via `chrome://web-app-internals`.
-- IWA permissions are blocked by default; declare needed `permissions_policy` in the web manifest.
-- IWAs can connect to owned extensions via `externally_connectable`.
-- The connection is message passing only; the extension cannot inject content into the IWA.
-
-## Unframed/borderless IWA
-
-- Use experimental unframed mode for the recorder window.
-- The current WICG proposal describes unframed windows as windows without usual OS/user-agent frame, titlebar, action buttons, or borders; web content controls the full window content.
-- Do not infer focus behavior from unframed mode.
-- Unframed does not imply non-activating or click-through.
-
-## Focus
-
-- There is no known Chrome/PWA/IWA API for a true unfocusable window.
-- There is no known click-through IWA/PWA window API.
-- A click in the recorder window may blur the target input.
-- Therefore dictation control is keyboard-only and the recorder window is passive during dictation.
-
-## Prior repo facts
-
-`esko/tabby-voice-dictation`:
-
-- Default backend is ElevenLabs realtime streaming.
-- It supports live partial streaming, toggle/push-to-talk, a status overlay, client-side noise gate, external CLI backend, and Web Speech backend.
-- It uses a ports-and-adapters layout.
-- `DictationSession` owns per-run lifecycle.
-- `AudioPipeline` owns browser audio capture graph.
-- `RealtimeSocket` owns WebSocket session, token minting, PCM encoding, flush, and reconnect.
-- `realtimeProtocol` is pure message classification.
-- `TranscriptDelivery` owns partial/final reconciliation.
+- MV3 service workers often fail to register when the unpacked extension is
+  loaded from Crostini/Linux files ("An unknown error occurred when fetching the
+  script."). Load from a ChromeOS-native path (e.g. My files → Downloads).
+- "Service worker (inactive)" is normal — the worker idles between events.

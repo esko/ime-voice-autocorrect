@@ -1,50 +1,32 @@
-# ChromeOS install and flags
+# ChromeOS install
 
-This project intentionally targets experimental ChromeOS/Chrome capabilities.
+## Build
 
-## Required flags
-
-Enable at least:
-
-```text
-chrome://flags/#enable-isolated-web-app-dev-mode
+```fish
+pnpm install
+pnpm build   # outputs apps/extension/dist
 ```
 
-Also enable the relevant unframed/borderless IWA/PWA flags available on the target ChromeOS build. The exact flag names can change; search `chrome://flags` for:
-
-```text
-IWA
-Isolated Web App
-unframed
-borderless
-window controls
-```
-
-Record the exact flags used in `docs/platform-notes.md`.
-
-## Extension install
+## Install the extension
 
 1. Open `chrome://extensions`.
 2. Enable Developer mode.
-3. Load unpacked extension from `apps/extension/dist`.
-4. Go to ChromeOS input settings.
-5. Add/select:
+3. Load unpacked → `apps/extension/dist`.
+4. Open ChromeOS input settings and add/select:
    - `Input Assist US`
    - `Input Assist Finnish`
 
-## IWA dev install
+## ChromeOS gotchas
 
-1. Build recorder IWA.
-2. Enable IWA dev mode flag.
-3. Open `chrome://web-app-internals`.
-4. Install/test via Chrome's IWA developer flow.
-5. Confirm the installed app opens as a tiny unframed recorder window.
+- **Load from a ChromeOS-native path, not the Linux container.** Unpacked MV3
+  service workers often fail to register ("An unknown error occurred when
+  fetching the script.") when loaded directly from Crostini/Linux files. Copy
+  `apps/extension/dist` into a ChromeOS location (e.g. My files → Downloads) and
+  load it from there.
+- **Reload after every build.** `vite build` empties and rewrites `dist`; if the
+  extension is loaded during the rebuild, click the ↻ reload icon (or Remove +
+  Load unpacked) afterwards.
+- **"Service worker (inactive)" is normal** for MV3 — the worker idles between
+  events. It is only a problem if accompanied by an error.
 
-## Required manual setup
-
-- Put the IWA origin into the extension manifest `externally_connectable.matches`.
-- Set the extension ID in the IWA config.
-- Set `recorderBaseOrigin` in extension `chrome.storage.local` to the installed IWA origin (e.g. `isolated-app://…`). Dictation auto-launch opens `{origin}/recorder?extensionId={id}` in a background tab.
-- Configure ASR API key in the IWA settings page.
-- Grant microphone permission.
-- Select `Input Assist US` or `Input Assist Finnish` as the active ChromeOS input method.
+No special `chrome://flags` are required for the autocorrect keyboard.

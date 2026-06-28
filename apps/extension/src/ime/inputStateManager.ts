@@ -1,5 +1,3 @@
-import { isDictationAllowed } from "./unsafeField.js";
-
 export interface KeyboardEventLike {
   key: string;
   type: "keydown" | "keyup";
@@ -18,13 +16,11 @@ export interface CorrectionUndo {
 
 export class InputStateManager {
   private activeContext: chrome.input.ime.InputContext | null = null;
-  private currentGeneration: number = 0;
   private currentBuffer: string = "";
   private correctionUndo: CorrectionUndo | null = null;
 
   onFocus(context: chrome.input.ime.InputContext): void {
     this.activeContext = context;
-    this.currentGeneration++;
     this.currentBuffer = "";
     this.correctionUndo = null;
   }
@@ -32,7 +28,6 @@ export class InputStateManager {
   onBlur(contextId: number): void {
     if (this.activeContext?.contextID === contextId) {
       this.activeContext = null;
-      this.currentGeneration++;
       this.currentBuffer = "";
       this.correctionUndo = null;
     }
@@ -84,28 +79,12 @@ export class InputStateManager {
     return this.activeContext;
   }
 
-  getContextToken(): { contextId: number; generation: number } | null {
-    if (!this.activeContext) return null;
-    return { contextId: this.activeContext.contextID, generation: this.currentGeneration };
-  }
-
-  hasValidContext(contextId?: number): boolean {
-    if (contextId === undefined) {
-      return this.activeContext !== null;
-    }
-    return this.activeContext !== null && this.activeContext.contextID === contextId;
-  }
-
   canAutocorrect(): boolean {
     if (!this.activeContext) {
       return false;
     }
     const type = this.activeContext.type;
     return type !== "password" && type !== "url" && type !== "email" && type !== "number";
-  }
-
-  canDictate(): boolean {
-    return isDictationAllowed(this.activeContext?.type);
   }
 
   getPreviousToken(): TokenSnapshot | null {

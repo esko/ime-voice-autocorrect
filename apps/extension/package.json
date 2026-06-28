@@ -10,9 +10,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@input-assist/autocorrect-core": "workspace:*",
-    "@input-assist/dictation-core": "workspace:*",
-    "@input-assist/protocol": "workspace:*"
+    "@input-assist/autocorrect-core": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.304",

@@ -2,132 +2,74 @@
 
 ## Mission
 
-Implement the full ChromeOS Input Assist stack described in this repository.
+Build a **ChromeOS autocorrect keyboard**: a Manifest V3 ChromeOS IME extension
+that offers English autocorrect on US and Finnish layouts. This project is for
+one user on ChromeOS. Do not spend effort on broad compatibility, other
+browsers, Android, Linux apps, or web-page-only content scripts.
 
-This project is for one user on ChromeOS. Do not spend effort on broad compatibility, other browsers, Android, Linux apps, Tabby, or web-page-only content scripts.
+Voice dictation has been scoped out (recorder IWA, extension↔IWA bridge, and
+ASR were removed). Do **not** reintroduce them unless explicitly asked. The
+history remains in git if dictation is revived later.
 
-## Non-negotiable requirements
+## Current shape
 
-- Build a Manifest V3 ChromeOS IME extension.
-- Build one recorder IWA.
-- Expose two IME input methods:
-  - `Input Assist US`
-  - `Input Assist Finnish`
-- Each IME entry must specify exactly one keyboard layout.
-- Implement English-only autocorrect.
-- Implement external streaming ASR dictation.
-- Dictation control must be keyboard-first through the IME.
-- Dictation output must insert automatically through the active IME context.
-- The visible recorder UI must be a single tiny unframed/borderless IWA window.
-- Do not implement a separate puck.
-- Do not implement Tabby-specific support.
-- Do not implement content-script insertion as an alternative architecture.
-- Do not implement compatibility fallbacks.
-- Do not build a legacy Chrome App.
-- Do not require mouse clicks for normal dictation.
+- One MV3 ChromeOS IME extension (`apps/extension`).
+- Two IME input methods: `Input Assist US` and `Input Assist Finnish`, each with
+  exactly one keyboard layout.
+- English-only autocorrect, applied at word boundaries, with undo-on-backspace.
+- A reusable, Chrome-agnostic engine in `packages/autocorrect-core`.
 
-## Prior art requirement
+## The plan of record
 
-Before writing dictation code, inspect `esko/tabby-voice-dictation`.
-
-Port the architectural lessons, not the Tabby UI/injection specifics:
-
-- Keep `DictationSession` framework-agnostic.
-- Keep ASR protocol decoding pure and unit-tested.
-- Keep mic/audio globals isolated to one audio adapter.
-- Keep WebSocket/session globals isolated to one socket adapter.
-- Keep transcript formatting and reconciliation pure.
-- Keep UI status behind a small port.
-- Replace Tabby `TerminalPort` with a ChromeOS `ImeTextPort`.
-
-## Development style
-
-Use strict TDD.
-
-For each work item:
-
-1. Write failing tests first.
-2. Implement the smallest correct unit.
-3. Run all relevant tests.
-4. Refactor.
-5. Update docs if behavior changed.
-
-Prefer pure TypeScript modules for core logic so tests run outside ChromeOS where possible. Chrome API adapters should be thin and integration-tested separately on ChromeOS.
+`docs/autocorrect-engine-plan.md` defines the engine vision, scoring model, and
+the phased slices (Phase 1 = scoring/decision layer, then candidate UI, user
+learning, Hunspell validator). Start there.
 
 ## Architecture rule
 
-Separate pure logic from platform adapters:
+Keep pure logic separate from platform adapters. **No `chrome.*` imports in
+`packages/autocorrect-core`** — the extension captures text and calls the engine.
 
 ```text
-Pure core:
-  autocorrect
-  tokenization
-  scoring
-  transcript cleanup
-  ASR protocol state machine
-  dictation session state
-  bridge protocol validation
-
-Chrome/IWA adapters:
-  chrome.input.ime wrapper
-  chrome.runtime messaging wrapper
-  IWA mic capture wrapper
-  IWA window/status UI
-  storage wrapper
+Pure core (packages/autocorrect-core):
+  tokenization, SymSpell candidate generation, scoring, confidence, decision
+Chrome adapters (apps/extension):
+  chrome.input.ime wrapper, storage wrapper, menu/candidate UI
 ```
 
-## Test requirements
+## Development style
 
-Every PR must include tests for:
+Use strict TDD. For each work item: write failing tests first, implement the
+smallest correct unit, run tests, refactor, update docs if behavior changed.
+Prefer pure TypeScript modules so tests run outside ChromeOS; keep Chrome API
+adapters thin and integration-tested separately on the device.
 
-- Unit-level core behavior.
-- Protocol validation.
-- Error/state transition behavior.
-- Chrome adapter behavior using mocks.
-- Manual ChromeOS acceptance steps if touching IME or IWA runtime.
+## Quality gates
 
-## Preferred tooling
+All four must stay green (CI runs them): `pnpm typecheck`, `pnpm lint`,
+`pnpm test`, `pnpm build`. Do not merge red.
 
-Use a TypeScript monorepo.
+## Tooling
 
-Recommended stack:
-
-- `pnpm`
-- `typescript`
-- `vite`
-- `vitest`
-- `eslint`
-- `prettier`
-- `zod` for protocol/schema validation
-- `fake-indexeddb` or storage mocks for local tests
-- `playwright` only for browser-level UI tests where useful
-
-## Fish shell note
-
-All setup commands in docs should be fish-compatible. Avoid Bash-only snippets unless clearly marked.
+pnpm monorepo: `typescript`, `vite`, `vitest`, `eslint`, `prettier`. Fish shell
+is the default; keep doc commands fish-compatible.
 
 ## Commit/PR rules
 
-- Use conventional commits.
-- Keep PRs small but complete.
-- Do not merge red tests.
-- Do not leave TODOs for required first-release behavior.
-- Do not create “later” or “post-MVP” work for known required functionality. If a requirement is too large, split it into first-release issues, not future scope.
+- Conventional commits.
+- Keep PRs small but complete; do not merge red tests.
+- Do not leave TODOs for required behavior.
 
 ## Source verification rule
 
-Chrome/IWA/IME APIs are moving targets. When implementing platform adapters, verify behavior against current Chrome docs and on the target Chromebook. If docs and runtime differ, document the runtime behavior in `docs/platform-notes.md`.
+Chrome/IME APIs are moving targets. When implementing platform adapters, verify
+against current Chrome docs and on the target Chromebook. If docs and runtime
+differ, record the runtime behavior in `docs/platform-notes.md`.
 
 ## Agent skills
 
-### Issue tracker
-
-GitHub Issues on `esko/ime-voice-autocorrect` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Five canonical triage roles mapped to GitHub label strings. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context layout: `docs/adr/` for architectural decisions; `CONTEXT.md` at repo root when present. See `docs/agents/domain.md`.
+- **Issue tracker** — GitHub Issues on `esko/ime-voice-autocorrect` via `gh`.
+  See `docs/agents/issue-tracker.md`.
+- **Triage labels** — see `docs/agents/triage-labels.md`.
+- **Domain docs** — `docs/adr/` for decisions; `CONTEXT.md` at repo root. See
+  `docs/agents/domain.md`.

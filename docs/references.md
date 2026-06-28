@@ -3,27 +3,17 @@
 ## Chrome platform
 
 - `chrome.input.ime` API:
-  - https://developer.chrome.com/docs/extensions/reference/api/input/ime
-- `input_components` manifest:
-  - https://developer.chrome.com/docs/extensions/reference/manifest/input-components
-- IWA introduction:
-  - https://developer.chrome.com/docs/iwa/introduction
-- IWA extension connection:
-  - https://developer.chrome.com/docs/iwa/introduction#work-with-extensions
-- WICG unframed IWA window proposal:
-  - https://github.com/WICG/manifest-incubations/issues/118
+  https://developer.chrome.com/docs/extensions/reference/api/input/ime
+- `input_components` manifest key:
+  https://developer.chrome.com/docs/extensions/reference/manifest/input-components
+- `chrome.input.ime` deprecation note (treat the IME wrapper as replaceable):
+  https://chromeos.dev/en/posts/chrome-input-ime-deprecation
 
-## Prior repo
+## Autocorrect engine
 
-- `esko/tabby-voice-dictation`:
-  - https://github.com/esko/tabby-voice-dictation
-- Important files to inspect:
-  - `README.md`
-  - `CONTEXT.md`
-  - `src/dictationSession.ts`
-  - `src/audioPipeline.ts`
-  - `src/realtimeSocket.ts`
-  - `src/realtimeProtocol.ts`
-  - `src/transcriptDelivery.ts`
-  - `src/transcriptFormatter.ts`
-  - `docs/ASR_HELPERS.md`
+- SymSpell (symmetric-delete spelling correction):
+  https://github.com/wolfgarbe/symspell
+- nspell (Hunspell-compatible JS spell checker, Phase 4):
+  https://github.com/wooorm/nspell
+- Hunspell dictionaries in UTF-8 (Phase 4):
+  https://github.com/wooorm/dictionaries

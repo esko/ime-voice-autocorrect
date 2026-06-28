@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ExtensionSettingsCache } from "./settingsCache.js";
 
 describe("ExtensionSettingsCache", () => {
-  it("stores shared settings without secrets", async () => {
+  it("stores and loads autocorrect word lists", async () => {
     const memory: Record<string, unknown> = {};
     const cache = new ExtensionSettingsCache({
       get: async (keys) =>
@@ -12,10 +12,10 @@ describe("ExtensionSettingsCache", () => {
       },
     });
 
-    await cache.save({ activationMode: "toggle", spokenPunctuation: true });
+    await cache.save({ personalDictionary: ["foo"], ignoreList: ["bar"] });
     expect(await cache.load()).toEqual({
-      activationMode: "toggle",
-      spokenPunctuation: true,
+      personalDictionary: ["foo"],
+      ignoreList: ["bar"],
     });
   });
 });

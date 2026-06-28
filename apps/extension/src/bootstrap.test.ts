@@ -48,6 +48,7 @@ describe("bootstrapExtension IME wiring", () => {
       input: {
         ime: {
           onActivate: { addListener: vi.fn() },
+          onDeactivated: { addListener: vi.fn() },
           onFocus: {
             addListener: (listener: FocusListener) => {
               focusListener = listener;

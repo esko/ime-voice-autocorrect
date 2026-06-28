@@ -4,3 +4,7 @@ dist
 scratch.ts
 scratch.*.ts
 *.scratch.ts
+
+# IWA signing key (deterministic origin depends on it — keep a private backup)
+key.pem
+*.swbn

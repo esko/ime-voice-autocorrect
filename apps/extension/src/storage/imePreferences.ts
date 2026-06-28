@@ -1,11 +1,9 @@
 export interface ImePreferences {
   autocorrectEnabled: boolean;
-  dictationEnabled: boolean;
 }
 
 export const DEFAULT_IME_PREFERENCES: ImePreferences = {
   autocorrectEnabled: true,
-  dictationEnabled: true,
 };
 
 export interface PreferencesStorage {

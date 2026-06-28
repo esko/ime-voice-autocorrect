@@ -31,12 +31,6 @@ describe("InputStateManager", () => {
     expect(manager.getPreviousToken()).toBe(null);
   });
 
-  it("context ID mismatch blocks commit/replacement", () => {
-    manager.onFocus(createContext(1));
-    expect(manager.hasValidContext(1)).toBe(true);
-    expect(manager.hasValidContext(2)).toBe(false);
-  });
-
   it("Backspace updates the current word buffer", () => {
     manager.onFocus(createContext(1));
     manager.noteCommittedText("hello");
@@ -80,20 +74,17 @@ describe("InputStateManager", () => {
     expect(manager.getPreviousToken()?.text).toBe("hello");
   });
 
-  it("password fields disable autocorrect and dictation", () => {
+  it("password fields disable autocorrect", () => {
     manager.onFocus(createContext(1, "password"));
     expect(manager.canAutocorrect()).toBe(false);
-    expect(manager.canDictate()).toBe(false);
   });
 
-  it("URL/email/number fields disable or heavily restrict autocorrect", () => {
+  it("URL/email/number fields disable autocorrect", () => {
     manager.onFocus(createContext(1, "url"));
     expect(manager.canAutocorrect()).toBe(false);
-    expect(manager.canDictate()).toBe(true);
 
     manager.onFocus(createContext(2, "email"));
     expect(manager.canAutocorrect()).toBe(false);
-    expect(manager.canDictate()).toBe(false);
   });
 
   it("unrelated typing clears stale undo state", () => {
@@ -102,13 +93,5 @@ describe("InputStateManager", () => {
     
     manager.noteCommittedText(" ");
     expect(manager.consumeCorrectionUndo()).toBeNull();
-  });
-
-  it("dictation cannot commit after blur", () => {
-    manager.onFocus(createContext(1));
-    expect(manager.hasValidContext(1)).toBe(true);
-    
-    manager.onBlur(1);
-    expect(manager.hasValidContext(1)).toBe(false);
   });
 });
