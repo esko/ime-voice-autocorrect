@@ -25,6 +25,28 @@ original protection → weighted scoring (frequency, length-aware edit distance,
 keyboard-typo ops, case shape) + user learning + bigram context → margin-based
 confidence → replace / suggest / none.
 
+## Bundled data + offline eval
+
+The engine is data-driven from packaged files the service worker fetches and
+applies at start (`app.setDictionary` / `setValidator` / `setContext`):
+
+- `public/ngrams/en-freq.txt` — 30k Hunspell-filtered Norvig unigram
+  frequencies (the candidate source + frequency ranking). **This replaced a
+  232-word built-in stub that crippled real-vocabulary correction** — found by
+  the offline harness below.
+- `public/dictionary/en.{aff,dic}` — Hunspell dictionary (validator), copied
+  from the `dictionary-en` dep at build time.
+- `public/ngrams/en-{bi,tri}grams.txt` — context corpora.
+
+`apps/extension/scripts/eval.mjs` runs the **real engine against the real
+bundled data** on sample sentences — the fastest way to sanity-check behaviour
+without a device. Regenerate data with `scripts/build-ngrams.mjs`.
+
+Known limitation: short tokens with a close high-frequency real-word alternative
+(e.g. `wprd` between *word*/*work*, `woord` between *word*/*wood*) are
+conservatively left alone rather than suggested. Best tuned with real on-device
+typing data, not synthetic cases.
+
 ## Near-term (high value, low risk)
 
 Ordered by value-for-effort. All are offline, explainable, and engine-local.
