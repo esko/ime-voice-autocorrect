@@ -3,6 +3,7 @@ import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
 import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
+import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -27,6 +28,8 @@ export const AUTO_REPLACE_THRESHOLD = 0.85;
 export const SUGGEST_THRESHOLD = 0.55;
 export const MIN_MARGIN_OVER_ORIGINAL = 1.5;
 export const MIN_MARGIN_OVER_SECOND = 0.8;
+/** Max edit distance for a validator suggestion used as a coverage fallback. */
+const FALLBACK_MAX_EDIT = 3;
 
 export function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
@@ -155,6 +158,16 @@ export function decideCorrection(
   }
 
   const cap = maxEditDistanceForLength(token.length);
+  const previousWords = options.previousWords ?? [];
+  const scoreFor = (candidate: {
+    term: string;
+    editDistance: number;
+    frequency: number;
+  }): number =>
+    scoreCandidate(token, candidate) +
+    (options.model?.score(token, candidate.term) ?? 0) +
+    (options.context?.score(previousWords, candidate.term) ?? 0);
+
   const ranked: RankedCandidate[] = index
     .lookup(normalized)
     .filter((candidate) => candidate.editDistance <= cap)
@@ -163,12 +176,30 @@ export function decideCorrection(
       term: candidate.term,
       editDistance: candidate.editDistance,
       frequency: candidate.frequency,
-      totalScore:
-        scoreCandidate(token, candidate) +
-        (options.model?.score(token, candidate.term) ?? 0) +
-        (options.context?.score(options.previousWords ?? [], candidate.term) ?? 0),
-    }))
-    .sort((a, b) => b.totalScore - a.totalScore);
+      totalScore: scoreFor(candidate),
+    }));
+
+  // Coverage fallback: when SymSpell + the frequency list find nothing, ask the
+  // validator (Hunspell) for suggestions from its larger vocabulary and score
+  // them the same way, so the keyboard/context ranking still applies.
+  if (ranked.length === 0 && options.validator?.suggest) {
+    const seen = new Set<string>();
+    for (const suggestion of options.validator.suggest(normalized).slice(0, 5)) {
+      const term = suggestion.toLowerCase();
+      if (term === normalized || seen.has(term)) {
+        continue;
+      }
+      const distance = damerauLevenshtein(normalized, term);
+      if (distance === 0 || distance > FALLBACK_MAX_EDIT) {
+        continue;
+      }
+      seen.add(term);
+      const candidate = { term, editDistance: distance, frequency: index.frequencyOf(term) };
+      ranked.push({ ...candidate, totalScore: scoreFor(candidate) });
+    }
+  }
+
+  ranked.sort((a, b) => b.totalScore - a.totalScore);
 
   const best = ranked[0];
   if (!best) {

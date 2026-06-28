@@ -47,7 +47,9 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
 
 3. **Extra candidate sources.** Union into the same ranker, then let the
    confidence layer decide:
-   - Hunspell `suggest()` as a fallback when SymSpell yields few candidates.
+   - ✅ Hunspell `suggest()` fallback when SymSpell + the frequency list find
+     nothing (`Validator.suggest`, gated to edit distance ≤ 3, scored the same
+     way so keyboard/context ranking still applies).
    - Mine the `.aff` `REP`/`MAP`/`PHONE`/`KEY` rules for extra signals
      (common replacements, similar characters, phonetic, keyboard hints).
    - A small hand-written hard-typo map for stubborn cases.
