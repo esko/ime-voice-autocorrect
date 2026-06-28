@@ -2,6 +2,7 @@ import { UserModel } from "@input-assist/autocorrect-core";
 import { registerInputAssist } from "./background.js";
 import { loadEnglishValidator } from "./autocorrect/nspellValidator.js";
 import { loadEnglishContext } from "./autocorrect/contextLoader.js";
+import { loadEnglishDictionary } from "./autocorrect/dictionaryLoader.js";
 import { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import { ExtensionImePreferences } from "./storage/imePreferences.js";
 import { ExtensionUserModelStore } from "./storage/userModelStore.js";
@@ -34,18 +35,20 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
 
   // Upgrade to the Hunspell validator once its bundled dictionary loads. Until
   // then the frequency list alone drives corrections.
-  void loadEnglishValidator((path) => chromeApi.runtime.getURL(path))
+  // Upgrade the engine once the bundled data loads: Hunspell validator, the full
+  // n-gram context corpus, and the real frequency dictionary. The dictionary is
+  // applied last (its larger SymSpell index is the one costly rebuild); the small
+  // built-in dictionary handles the most common typos until then.
+  const url = (path: string) => chromeApi.runtime.getURL(path);
+  void loadEnglishValidator(url)
     .then((validator) => app.setValidator(validator))
-    .catch(() => {
-      /* dictionary unavailable — keep running without the validator */
-    });
-
-  // Upgrade from the seed context table to the full bundled bigram corpus.
-  void loadEnglishContext((path) => chromeApi.runtime.getURL(path))
+    .catch(() => {});
+  void loadEnglishContext(url)
     .then((context) => app.setContext(context))
-    .catch(() => {
-      /* corpus unavailable — keep running with the seed context */
-    });
+    .catch(() => {});
+  void loadEnglishDictionary(url)
+    .then((dictionary) => app.setDictionary(dictionary))
+    .catch(() => {});
 }
 
 if (typeof chrome !== "undefined" && chrome.runtime?.id) {

@@ -9,13 +9,24 @@
 //
 //   node scripts/build-ngrams.mjs [path/to/subs2vec-en-trigrams.tsv]
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import nspell from "nspell";
+
+/** Read a local file as text, transparently gunzipping a .gz download. */
+function readLocalText(path) {
+  const buffer = readFileSync(path);
+  const gzipped = buffer[0] === 0x1f && buffer[1] === 0x8b;
+  return (gzipped ? gunzipSync(buffer) : buffer).toString("utf8");
+}
 
 const BIGRAM_SOURCE = "https://norvig.com/ngrams/count_2w.txt";
 const TRIGRAM_SOURCE =
   "https://raw.githubusercontent.com/orgtre/google-books-ngram-frequency/master/ngrams/3grams_english.csv";
+const UNIGRAM_SOURCE = "https://norvig.com/ngrams/count_1w.txt";
+const FREQ_DICT_SIZE = 30_000;
 const WORD = /^[a-z]+$/;
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -69,7 +80,7 @@ function parseNgramLine(line) {
 
 const subs2vecPath = process.argv[2];
 const trigramText = subs2vecPath
-  ? readFileSync(subs2vecPath, "utf8")
+  ? readLocalText(subs2vecPath)
   : await fetchText(TRIGRAM_SOURCE);
 console.log(`Trigram source: ${subs2vecPath ?? TRIGRAM_SOURCE}`);
 
@@ -88,3 +99,32 @@ writeFileSync(
   trigrams.map(([ngram, count]) => `${ngram}\t${count}`).join("\n") + "\n",
 );
 console.log(`Wrote ${trigrams.length} word-triple trigrams`);
+
+// --- Frequency dictionary: Norvig unigrams, FILTERED through Hunspell so web
+// misspellings (teh, recieve, ...) don't become "valid" dictionary words. ---
+const dictDir = join(appDir, "public", "dictionary");
+if (!existsSync(join(dictDir, "en.dic"))) {
+  console.error("Run `node scripts/copy-dictionary.mjs` first (needed to filter the freq list).");
+  process.exit(1);
+}
+const spell = nspell(
+  readFileSync(join(dictDir, "en.aff"), "utf8"),
+  readFileSync(join(dictDir, "en.dic"), "utf8"),
+);
+const unigramText = await fetchText(UNIGRAM_SOURCE);
+const freq = [];
+for (const line of unigramText.split("\n")) {
+  const tab = line.indexOf("\t");
+  if (tab < 0) continue;
+  const word = line.slice(0, tab);
+  const count = Number(line.slice(tab + 1));
+  if (!WORD.test(word) || !Number.isFinite(count)) continue;
+  if (!spell.correct(word)) continue; // drop misspellings
+  freq.push([word, count]);
+  if (freq.length >= FREQ_DICT_SIZE) break;
+}
+writeFileSync(
+  join(outDir, "en-freq.txt"),
+  freq.map(([word, count]) => `${word}\t${count}`).join("\n") + "\n",
+);
+console.log(`Wrote ${freq.length} valid words to the frequency dictionary`);

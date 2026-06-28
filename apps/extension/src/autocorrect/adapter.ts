@@ -49,7 +49,7 @@ export interface AutocorrectImeAdapterOptions {
 
 export class AutocorrectImeAdapter {
   private engine: AutocorrectEngine;
-  private readonly dictionary: Dictionary;
+  private dictionary: Dictionary;
   private readonly userModel?: UserModel;
   private validator?: Validator;
   private context: ContextModel;
@@ -111,6 +111,12 @@ export class AutocorrectImeAdapter {
   /** Upgrade the context model (e.g. once the bundled n-gram corpus loads). */
   setContext(context: ContextModel): void {
     this.context = context;
+    this.engine = this.buildEngine();
+  }
+
+  /** Upgrade the frequency dictionary (e.g. once the bundled list loads). */
+  setDictionary(dictionary: Dictionary): void {
+    this.dictionary = dictionary;
     this.engine = this.buildEngine();
   }
 
