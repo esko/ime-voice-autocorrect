@@ -48,6 +48,11 @@ export class UserModel {
     return (this.data.rejectedCorrections[pairKey(original, candidate)] ?? 0) > 0;
   }
 
+  /** A pair the user has accepted at least once (gates real-word auto-swaps). */
+  wasAccepted(original: string, candidate: string): boolean {
+    return (this.data.acceptedCorrections[pairKey(original, candidate)] ?? 0) > 0;
+  }
+
   isAcceptedWord(word: string): boolean {
     return (this.data.acceptedWords[word.toLowerCase()] ?? 0) > 0;
   }

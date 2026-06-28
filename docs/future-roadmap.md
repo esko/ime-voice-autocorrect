@@ -15,7 +15,7 @@ only off the critical path (hotkey / sentence end / selected text).
 | 1 | SymSpell candidate generation + nspell/Hunspell validation | ✅ done |
 | 2 | Keyboard-aware error model | ◑ as a **scoring** feature (`keyboardTypoScore`: neighbour/transpose/doubled/inserted), not yet a weighted edit-distance in candidate generation |
 | 3 | N-gram language-model reranking | ◑ bounded **trigram→bigram backoff** reranker with a seed table (`createCommonContext`); larger compressed corpus still to come |
-| 4 | Confusion-set / real-word correction | ✗ not yet (we do have original-word protection: valid words are never auto-replaced) |
+| 4 | Confusion-set / real-word correction | ◑ context-gated, suggest-only-until-learned (`createCommonConfusionSets`); curated seed set, needs a larger n-gram corpus to bite |
 | 5 | Personal learning model | ✅ done (accept/reject pairs, accepted words, persisted) |
 | 6 | Small neural correction model | ✗ future, opt-in only |
 | 7 | Finnish morphology (Voikko) | ✗ future, separate track |
@@ -35,12 +35,13 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    compiled to WASM), and add right-context (next word) when surrounding text
    provides it. Keep the bounded score shape so context never dominates.
 
-2. **Confusion-set real-word correction (Level 4).** Catch valid-word mistakes
-   (`form`/`from`, `their`/`there`, `its`/`it's`, `were`/`we're`). Hard rules:
-   real-word swaps are **suggest-only by default**, and auto-replace **only**
-   after the user has accepted that specific swap (ties into Level 5). Gate
-   entirely on strong context (Level 3). This is where generic autocorrect feels
-   hostile — do it conservatively.
+2. **Confusion-set real-word correction (Level 4).** ◑ In: a curated confusion
+   table (`createCommonConfusionSets`) is consulted only when the original is a
+   real word. A swap is **suggest-only** unless context clearly favours it *and*
+   the user has accepted that exact swap before, in which case it auto-applies
+   (ties into Level 5). The remaining work is **data**: the seed n-gram tables
+   are too small for the context gate to fire on most real sentences — grow the
+   corpus (item 1) and expand the confusion set.
 
 3. **Extra candidate sources.** Union into the same ranker, then let the
    confidence layer decide:

@@ -2,6 +2,7 @@ import type { SymSpellIndex } from "./symspell.js";
 import type { UserModel } from "./learning.js";
 import type { Validator } from "./validator.js";
 import type { ContextModel } from "./context.js";
+import type { ConfusionSets } from "./confusion.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -55,6 +56,66 @@ export interface DecideOptions {
   context?: ContextModel;
   /** Words typed before this token (most recent last), for context scoring. */
   previousWords?: readonly string[];
+  /** Real-word confusion sets (form/from, their/there, …). */
+  confusion?: ConfusionSets;
+}
+
+/** Minimum context advantage for a confused alternative to be offered. */
+const CONFUSION_MIN_ADVANTAGE = 0.5;
+
+/**
+ * Real-word correction: when the original is itself a valid word, only a curated
+ * confusion alternative that context clearly prefers is offered — and it is
+ * auto-applied only if the user has accepted that exact swap before.
+ */
+function confusionDecision(
+  token: string,
+  normalized: string,
+  options: DecideOptions,
+): CorrectionDecision | null {
+  const confusion = options.confusion;
+  if (!confusion) {
+    return null;
+  }
+  const alternatives = confusion.alternatives(normalized);
+  if (alternatives.length === 0) {
+    return null;
+  }
+
+  const previousWords = options.previousWords ?? [];
+  const originalContext = options.context?.score(previousWords, normalized) ?? 0;
+
+  const ranked = alternatives
+    .map((alt) => {
+      const advantage = (options.context?.score(previousWords, alt) ?? 0) - originalContext;
+      const learning = options.model?.score(normalized, alt) ?? 0;
+      return { term: alt, advantage, totalScore: advantage + learning };
+    })
+    .filter((entry) => entry.advantage >= CONFUSION_MIN_ADVANTAGE)
+    .sort((a, b) => b.totalScore - a.totalScore);
+
+  const best = ranked[0];
+  if (!best) {
+    return null;
+  }
+
+  const candidates: RankedCandidate[] = ranked.map((entry) => ({
+    term: entry.term,
+    editDistance: 0,
+    frequency: 0,
+    totalScore: entry.totalScore,
+  }));
+
+  if (options.model?.wasAccepted(normalized, best.term) ?? false) {
+    return {
+      action: "replace",
+      original: token,
+      replacement: restoreCase(token, best.term),
+      confidence: 1,
+      candidates,
+    };
+  }
+  return { action: "suggest", candidates };
 }
 
 /**
@@ -84,11 +145,14 @@ export function decideCorrection(
     return { action: "none" };
   }
 
-  // Valid means the exact word is known in the frequency list or the validator
-  // (Hunspell) recognises it. Valid originals are real words: never auto-replace
-  // them (only offer alternatives).
+  // A real word (known in the frequency list or recognised by the validator) is
+  // never "corrected" as a typo. Its only correction path is a context-supported
+  // confusion-set swap.
   const originalIsValid =
     index.hasExact(normalized) || (options.validator?.isValid(normalized) ?? false);
+  if (originalIsValid) {
+    return confusionDecision(token, normalized, options) ?? { action: "none" };
+  }
 
   const cap = maxEditDistanceForLength(token.length);
   const ranked: RankedCandidate[] = index
@@ -112,19 +176,19 @@ export function decideCorrection(
   }
   const second = ranked[1];
 
-  const originalScore = scoreOriginal(originalIsValid, 0);
+  // The original is not a real word here (valid originals returned above), so its
+  // baseline score is zero.
+  const originalScore = scoreOriginal(false, 0);
   const secondScore = second?.totalScore ?? Number.NEGATIVE_INFINITY;
   const conf = confidence(best.totalScore, originalScore, secondScore);
   const marginOverOriginal = best.totalScore - originalScore;
   const marginOverSecond = best.totalScore - secondScore;
 
-  // A correction the user has previously undone, or a token that is itself a
-  // real word, is offered but never auto-applied.
+  // A correction the user has previously undone is offered but never auto-applied.
   const rejected = options.model?.wasRejected(token, best.term) ?? false;
-  const blockReplace = rejected || originalIsValid;
 
   if (
-    !blockReplace &&
+    !rejected &&
     conf >= AUTO_REPLACE_THRESHOLD &&
     marginOverOriginal >= MIN_MARGIN_OVER_ORIGINAL &&
     marginOverSecond >= MIN_MARGIN_OVER_SECOND

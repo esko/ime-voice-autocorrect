@@ -1,10 +1,12 @@
 import {
   createAutocorrectEngine,
+  createCommonConfusionSets,
   createCommonContext,
   createCoreEnglishDictionary,
   extractLastWord,
   isWordBoundary,
   type AutocorrectEngine,
+  type ConfusionSets,
   type ContextModel,
   type Dictionary,
   type RankedCandidate,
@@ -30,6 +32,7 @@ export interface AutocorrectImeAdapterOptions {
   userModel?: UserModel;
   validator?: Validator;
   context?: ContextModel;
+  confusion?: ConfusionSets;
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
@@ -47,6 +50,7 @@ export class AutocorrectImeAdapter {
   private readonly userModel?: UserModel;
   private validator?: Validator;
   private readonly context: ContextModel;
+  private readonly confusion: ConfusionSets;
   private personalDictionary: readonly string[];
   private ignoreList: readonly string[];
   private enabled: boolean;
@@ -62,6 +66,7 @@ export class AutocorrectImeAdapter {
     this.userModel = options.userModel;
     this.validator = options.validator;
     this.context = options.context ?? createCommonContext();
+    this.confusion = options.confusion ?? createCommonConfusionSets();
     this.personalDictionary = options.personalDictionary ?? [];
     this.ignoreList = options.ignoreList ?? [];
     this.enabled = options.enabled ?? true;
@@ -79,6 +84,7 @@ export class AutocorrectImeAdapter {
       userModel: this.userModel,
       validator: this.validator,
       context: this.context,
+      confusion: this.confusion,
     });
   }
 

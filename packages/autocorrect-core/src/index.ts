@@ -7,6 +7,8 @@ export type { UserLearningData } from "./learning.js";
 export type { Validator } from "./validator.js";
 export { createNgramContext, createCommonContext } from "./context.js";
 export type { ContextModel } from "./context.js";
+export { createConfusionSets, createCommonConfusionSets } from "./confusion.js";
+export type { ConfusionSets } from "./confusion.js";
 export type { DecideContext } from "./autocorrectEngine.js";
 export { createCoreEnglishDictionary } from "./coreEnglishDictionary.js";
 export { createTestDictionary } from "./dictionary.js";
