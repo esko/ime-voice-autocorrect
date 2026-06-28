@@ -5,6 +5,7 @@ import {
   isWordBoundary,
   type AutocorrectEngine,
   type Dictionary,
+  type RankedCandidate,
 } from "@input-assist/autocorrect-core";
 
 export interface ImeTextAdapter {
@@ -25,6 +26,12 @@ export interface AutocorrectImeAdapterOptions {
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
+  onSuggest?: (
+    contextId: number,
+    original: string,
+    delimiter: string,
+    candidates: RankedCandidate[],
+  ) => void;
 }
 
 export class AutocorrectImeAdapter {
@@ -33,6 +40,7 @@ export class AutocorrectImeAdapter {
   private enabled: boolean;
   private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
   private readonly onCorrectionUndone?: AutocorrectImeAdapterOptions["onCorrectionUndone"];
+  private readonly onSuggest?: AutocorrectImeAdapterOptions["onSuggest"];
 
   constructor(
     private readonly textAdapter: ImeTextAdapter,
@@ -42,6 +50,7 @@ export class AutocorrectImeAdapter {
     this.enabled = options.enabled ?? true;
     this.onCorrectionApplied = options.onCorrectionApplied;
     this.onCorrectionUndone = options.onCorrectionUndone;
+    this.onSuggest = options.onSuggest;
     this.engine = createAutocorrectEngine({
       dictionary: this.dictionary,
       personalDictionary: options.personalDictionary ?? [],
@@ -79,14 +88,16 @@ export class AutocorrectImeAdapter {
       return;
     }
 
-    const result = this.engine.correctToken(token);
-    if (result.kind !== "corrected") {
+    const decision = this.engine.decide(token);
+    if (decision.action === "replace") {
+      await this.textAdapter.deleteSurroundingText(contextId, token.length);
+      await this.textAdapter.commitText(contextId, decision.replacement);
+      this.onCorrectionApplied?.(contextId, token, decision.replacement);
       return;
     }
-
-    await this.textAdapter.deleteSurroundingText(contextId, token.length);
-    await this.textAdapter.commitText(contextId, result.corrected);
-    this.onCorrectionApplied?.(contextId, result.original, result.corrected);
+    if (decision.action === "suggest") {
+      this.onSuggest?.(contextId, token, character, decision.candidates);
+    }
   }
 
   async undoCorrection(contextId: number, undo: { restore: string; deleteLength: number }): Promise<void> {

@@ -33,6 +33,7 @@ describe("registerInputAssist key handling", () => {
           onBlur: { addListener: vi.fn() },
           onSurroundingTextChanged: { addListener: vi.fn() },
           onMenuItemActivated: { addListener: vi.fn() },
+          onCandidateClicked: { addListener: vi.fn() },
           onAssistiveWindowButtonClicked: { addListener: vi.fn() },
           onKeyEvent: {
             addListener: (listener: typeof keyListener) => {

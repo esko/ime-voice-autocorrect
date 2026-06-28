@@ -53,6 +53,10 @@ export function registerInputAssist(
     app.syncMenuStatus();
   });
 
+  chromeApi.input.ime.onCandidateClicked.addListener((engineId, candidateId) => {
+    void app.onCandidateClicked(candidateId);
+  });
+
   chromeApi.input.ime.onAssistiveWindowButtonClicked.addListener((event) => {
     if (event.buttonID !== "undo" || event.windowType !== "undo") {
       return;

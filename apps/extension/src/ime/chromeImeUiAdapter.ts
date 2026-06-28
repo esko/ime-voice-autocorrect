@@ -2,12 +2,21 @@ import type { AssistiveUndoProperties } from "./assistiveUndo.js";
 import { buildAssistiveUndoHide, buildAssistiveUndoShow } from "./assistiveUndo.js";
 import type { ImeMenuItem } from "./menu.js";
 
+export interface CandidateView {
+  id: number;
+  candidate: string;
+  label?: string;
+  annotation?: string;
+}
+
 export interface ChromeImeUiAdapter {
   setMenuItems(engineId: string, items: ImeMenuItem[]): void;
   setAssistiveWindowProperties(
     contextId: number,
     properties: AssistiveUndoProperties,
   ): void;
+  setCandidates(contextId: number, candidates: CandidateView[]): void;
+  setCandidateWindowVisible(engineId: string, visible: boolean): void;
 }
 
 export function createChromeImeUiAdapter(chromeApi: typeof chrome): ChromeImeUiAdapter {
@@ -17,6 +26,23 @@ export function createChromeImeUiAdapter(chromeApi: typeof chrome): ChromeImeUiA
     },
     setAssistiveWindowProperties(contextId, properties) {
       chromeApi.input.ime.setAssistiveWindowProperties({ contextID: contextId, properties });
+    },
+    setCandidates(contextId, candidates) {
+      chromeApi.input.ime.setCandidates({
+        contextID: contextId,
+        candidates: candidates.map((candidate) => ({
+          candidate: candidate.candidate,
+          id: candidate.id,
+          label: candidate.label,
+          annotation: candidate.annotation,
+        })),
+      });
+    },
+    setCandidateWindowVisible(engineId, visible) {
+      chromeApi.input.ime.setCandidateWindowProperties({
+        engineID: engineId,
+        properties: { visible, cursorVisible: false, vertical: true, pageSize: 5 },
+      });
     },
   };
 }

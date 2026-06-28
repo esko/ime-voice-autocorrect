@@ -135,7 +135,7 @@ If the original word is valid (Hunspell / user dictionary), add a large penalty
 
 ## Slices
 
-### Phase 1 — Scoring & decision layer (no new deps) ← start here
+### Phase 1 — Scoring & decision layer (no new deps) ✅ done
 Pure `autocorrect-core` work; keeps the build green throughout.
 - Add a `RankedCandidate` model and a weighted scorer (frequency, length-aware
   edit distance, keyboard-typo ops, case shape, safety penalty).
@@ -148,7 +148,7 @@ Pure `autocorrect-core` work; keeps the build green throughout.
   code/url/password contexts (none).
 **Done when:** `decide` is fully unit-tested and `autocorrect-core` gates pass.
 
-### Phase 2 — Wire `suggest` into the IME
+### Phase 2 — Wire `suggest` into the IME ✅ done
 - Extend the extension wrapper to call `decide`; on `replace` do the
   delete+commit (as today), on `suggest` call `chrome.input.ime.setCandidates`
   / the candidate window; on `none` do nothing.

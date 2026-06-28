@@ -7,6 +7,7 @@ import type { ChromeImeTextAdapter } from "./chromeImeAdapter.js";
 import type { ChromeImeUiAdapter } from "./chromeImeUiAdapter.js";
 import { AssistiveUndoController } from "./chromeImeUiAdapter.js";
 import { ImeMenuController } from "./imeMenuController.js";
+import { SuggestionController } from "./suggestionController.js";
 
 export interface InputAssistAppOptions {
   imeAdapter: ChromeImeTextAdapter;
@@ -36,30 +37,40 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     refreshActiveImeMenu();
   };
 
-  const autocorrect = new AutocorrectImeAdapter(
-    {
-      deleteSurroundingText: async (contextId, length) => {
-        if (options.imeAdapter.getContextId() === contextId) {
-          await options.imeAdapter.deleteSurroundingText(length);
-        }
-      },
-      commitText: async (contextId, text) => {
-        if (options.imeAdapter.getContextId() === contextId) {
-          await options.imeAdapter.commitText(text);
-        }
-      },
+  // Context-gated text operations shared by autocorrect and suggestions.
+  const imeTextAdapter = {
+    deleteSurroundingText: async (contextId: number, length: number) => {
+      if (options.imeAdapter.getContextId() === contextId) {
+        await options.imeAdapter.deleteSurroundingText(length);
+      }
     },
-    {
-      onCorrectionApplied: (contextId, original, corrected) => {
-        stateManager.noteReplacement(original, corrected);
-        void assistiveUndo?.showCorrection(contextId, original, corrected);
-      },
-      onCorrectionUndone: () => {
-        stateManager.clearCorrectionUndo();
-        assistiveUndo?.hide();
-      },
+    commitText: async (contextId: number, text: string) => {
+      if (options.imeAdapter.getContextId() === contextId) {
+        await options.imeAdapter.commitText(text);
+      }
     },
-  );
+  };
+
+  const suggestions = options.imeUi
+    ? new SuggestionController(options.imeUi, imeTextAdapter)
+    : null;
+
+  const autocorrect = new AutocorrectImeAdapter(imeTextAdapter, {
+    onCorrectionApplied: (contextId, original, corrected) => {
+      suggestions?.dismiss();
+      stateManager.noteReplacement(original, corrected);
+      void assistiveUndo?.showCorrection(contextId, original, corrected);
+    },
+    onCorrectionUndone: () => {
+      stateManager.clearCorrectionUndo();
+      assistiveUndo?.hide();
+    },
+    onSuggest: suggestions
+      ? (contextId, original, delimiter, candidates) => {
+          suggestions.offer(activeEngineId ?? "", contextId, original, delimiter, candidates);
+        }
+      : undefined,
+  });
 
   if (options.imeUi) {
     menuController = new ImeMenuController(
@@ -120,9 +131,22 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     },
     onBlur(contextId: number) {
       stateManager.onBlur(contextId);
+      suggestions?.dismiss();
+    },
+    async onCandidateClicked(candidateId: number) {
+      const applied = await suggestions?.select(candidateId);
+      if (!applied) {
+        return;
+      }
+      stateManager.noteReplacement(applied.original, applied.replacement);
+      const contextId = stateManager.getActiveContextId();
+      if (contextId !== null) {
+        void assistiveUndo?.showCorrection(contextId, applied.original, applied.replacement);
+      }
     },
     async onCharacterTyped(contextId: number, character: string) {
       assistiveUndo?.hide();
+      suggestions?.dismiss();
       const prior = stateManager.getPreviousToken()?.text ?? "";
       stateManager.noteCommittedText(character);
       if (stateManager.canAutocorrect()) {

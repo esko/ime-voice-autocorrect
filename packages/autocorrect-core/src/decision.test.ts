@@ -68,4 +68,15 @@ describe("decideCorrection", () => {
     // "cot" is one edit from both; equal scores -> no confident replacement.
     expect(decideCorrection("cot", ambiguous).action).not.toBe("replace");
   });
+
+  it("offers a suggestion at medium confidence", () => {
+    // A rare word reached by a single far (non-neighbour) substitution lands
+    // above the suggest threshold but below auto-replace.
+    const rare = indexOf([{ word: "test", frequency: 1 }]);
+    const decision = decideCorrection("tesa", rare);
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("test");
+    }
+  });
 });
