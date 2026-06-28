@@ -1,4 +1,4 @@
-import { keyboardNeighborScore } from "./keyboardNeighbors.js";
+import { areKeyboardNeighbors } from "./keyboardNeighbors.js";
 
 /** A candidate that has been scored by the ranking layer. */
 export interface RankedCandidate {
@@ -20,18 +20,25 @@ export function frequencyScore(frequency: number): number {
   return Math.log10(frequency + 1) * 1.2;
 }
 
-/** Prefer small edits; punish anything past distance 2 (or 1 for short words). */
+/**
+ * Prefer small edits. Distance 2 is allowed (not punished) on words of length
+ * 4+ because a single motor slip often produces two neighbouring/extra keys at
+ * once; keyboard plausibility (below) is what actually gates such corrections.
+ */
 export function editDistanceScore(editDistance: number, wordLength: number): number {
   if (editDistance === 0) return 2.0;
   if (editDistance === 1) return 1.5;
-  if (editDistance === 2 && wordLength >= 5) return 0.7;
+  if (editDistance === 2 && wordLength >= 4) return 0.6;
   return -2.0;
 }
 
-/** Length-aware cap on how far an automatic replacement may reach. */
+/**
+ * Length-aware cap on how far an automatic replacement may reach. Words of
+ * length 4+ allow distance 2 so multi-key fat-finger slips remain correctable.
+ */
 export function maxEditDistanceForLength(length: number): number {
   if (length <= 2) return 0; // never autocorrect 1–2 char tokens
-  if (length <= 4) return 1;
+  if (length === 3) return 1;
   return 2;
 }
 
@@ -50,30 +57,66 @@ function isAdjacentTransposition(a: string, b: string): boolean {
   return j === i + 1 && a[i] === b[j] && a[j] === b[i];
 }
 
-function countSubstitutions(a: string, b: string): number {
-  let n = 0;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) n++;
+/** Index in `longer` of the first character that isn't in `shorter`. */
+function extraCharIndex(longer: string, shorter: string): number {
+  for (let i = 0; i < shorter.length; i++) {
+    if (longer[i] !== shorter[i]) return i;
   }
-  return n;
+  return shorter.length; // the extra character is at the end
 }
 
+// Weights are tuned for motor-difficulty typing: hitting neighbouring keys and
+// pressing multiple/extra keys are treated as the most plausible mistakes.
+const NEIGHBOUR_SUB = 1.5;
+const FAR_SUB = -0.7;
+const TRANSPOSE = 1.4;
+const DOUBLED_KEY = 1.3;
+const INSERTED_NEIGHBOUR = 1.2;
+const PLAIN_INDEL = 0.5;
+
 /**
- * Reward typos that match how a keyboard is physically mistyped: adjacent
- * transpositions, neighbouring-key substitutions, and single dropped/added keys.
+ * Reward typos that match how a keyboard is physically mistyped. Emphasised for
+ * motor-difficulty input: neighbouring-key substitutions, doubled keys (tremor
+ * bounce), and inserted adjacent keys (fat-finger) all score highly; edits that
+ * are not keyboard-plausible are penalised.
  */
 export function keyboardTypoScore(original: string, candidate: string): number {
   const a = original.toLowerCase();
   const b = candidate.toLowerCase();
   if (a === b) return 0;
-  if (isAdjacentTransposition(a, b)) return 1.2;
+  if (isAdjacentTransposition(a, b)) return TRANSPOSE;
+
   if (a.length === b.length) {
-    const neighbourSubs = keyboardNeighborScore(a, b);
-    const subs = countSubstitutions(a, b);
-    return neighbourSubs * 1.0 - (subs - neighbourSubs) * 0.5;
+    let score = 0;
+    for (let i = 0; i < a.length; i++) {
+      const from = a[i];
+      const to = b[i];
+      if (from === undefined || to === undefined || from === to) continue;
+      score += areKeyboardNeighbors(from, to) ? NEIGHBOUR_SUB : FAR_SUB;
+    }
+    return score;
   }
-  // A single dropped or doubled key is a plausible typo.
-  if (Math.abs(a.length - b.length) === 1) return 0.6;
+
+  if (Math.abs(a.length - b.length) === 1) {
+    // When the user typed an extra character, classify the insertion.
+    if (a.length > b.length) {
+      const i = extraCharIndex(a, b);
+      const extra = a[i];
+      const prev = a[i - 1];
+      const next = a[i + 1];
+      if (extra !== undefined && (extra === prev || extra === next)) {
+        return DOUBLED_KEY; // a key bounced/held (common with tremor)
+      }
+      if (
+        extra !== undefined &&
+        ((prev !== undefined && areKeyboardNeighbors(extra, prev)) ||
+          (next !== undefined && areKeyboardNeighbors(extra, next)))
+      ) {
+        return INSERTED_NEIGHBOUR; // brushed an adjacent key
+      }
+    }
+    return PLAIN_INDEL;
+  }
   return 0;
 }
 

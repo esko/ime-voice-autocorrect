@@ -49,6 +49,17 @@ describe("decideCorrection", () => {
     ).toBe("none");
   });
 
+  it("corrects motor-difficulty multi-key slips (accessibility)", () => {
+    const wordIndex = indexOf([{ word: "word", frequency: 5000 }]);
+    // single neighbour sub, two neighbour subs, and a doubled key
+    for (const typo of ["wprd", "wprf", "woord"]) {
+      expect(decideCorrection(typo, wordIndex)).toMatchObject({
+        action: "replace",
+        replacement: "word",
+      });
+    }
+  });
+
   it("suggests rather than replaces when two candidates are close", () => {
     const ambiguous = indexOf([
       { word: "cat", frequency: 100 },

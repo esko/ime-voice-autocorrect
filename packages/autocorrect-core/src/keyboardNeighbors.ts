@@ -27,6 +27,11 @@ const NEIGHBORS: Record<string, readonly string[]> = {
   m: ["n", "j", "k"],
 };
 
+/** True when `b` is physically adjacent to `a` on a QWERTY keyboard. */
+export function areKeyboardNeighbors(a: string, b: string): boolean {
+  return NEIGHBORS[a.toLowerCase()]?.includes(b.toLowerCase()) ?? false;
+}
+
 export function keyboardNeighborScore(token: string, candidate: string): number {
   if (token.length !== candidate.length) {
     return 0;

@@ -24,25 +24,33 @@ describe("editDistanceScore", () => {
 });
 
 describe("maxEditDistanceForLength", () => {
-  it("caps reach by token length", () => {
+  it("caps reach by token length, allowing distance 2 from length 4", () => {
     expect(maxEditDistanceForLength(2)).toBe(0);
-    expect(maxEditDistanceForLength(4)).toBe(1);
+    expect(maxEditDistanceForLength(3)).toBe(1);
+    expect(maxEditDistanceForLength(4)).toBe(2);
     expect(maxEditDistanceForLength(8)).toBe(2);
   });
 });
 
 describe("keyboardTypoScore", () => {
   it("rewards adjacent transpositions", () => {
-    expect(keyboardTypoScore("teh", "the")).toBeCloseTo(1.2, 5);
+    expect(keyboardTypoScore("teh", "the")).toBeCloseTo(1.4, 5);
   });
 
   it("rewards neighbouring-key substitutions over distant ones", () => {
     // "chromr" -> "chrome": r and e are adjacent keys.
     expect(keyboardTypoScore("chromr", "chrome")).toBeGreaterThan(0);
-    // "cat" -> "cot": a and o are not neighbours.
-    expect(keyboardTypoScore("cat", "cot")).toBeLessThan(
-      keyboardTypoScore("chromr", "chrome"),
-    );
+    // a -> o are not neighbours, so a far substitution is penalised.
+    expect(keyboardTypoScore("cat", "cot")).toBeLessThan(0);
+  });
+
+  it("scores motor-difficulty mistakes highly (accessibility)", () => {
+    // Two neighbouring-key substitutions in one word (multi-key slip).
+    expect(keyboardTypoScore("wprf", "word")).toBeCloseTo(3.0, 5);
+    // Doubled key (tremor bounce).
+    expect(keyboardTypoScore("woord", "word")).toBeCloseTo(1.3, 5);
+    // Brushed an adjacent key (fat-finger insertion): p is next to o.
+    expect(keyboardTypoScore("wpord", "word")).toBeCloseTo(1.2, 5);
   });
 });
 

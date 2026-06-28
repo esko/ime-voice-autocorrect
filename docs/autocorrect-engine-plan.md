@@ -69,6 +69,22 @@ interface DecideInput {
 }
 ```
 
+## Accessibility: emphasise neighbour-key typos
+
+The user has motor difficulties and frequently hits **neighbouring keys, extra
+keys, and doubled keys**. The scorer is therefore tuned to treat these as the
+most plausible mistakes and correct them readily:
+
+- neighbouring-key substitution scores high (`1.5` each), far substitutions are
+  penalised (`-0.7`);
+- doubled keys (tremor bounce) and inserted adjacent keys (fat-finger) score
+  highly (`1.3` / `1.2`);
+- words of length 4+ allow edit distance 2 so multi-key slips (e.g. two
+  neighbouring substitutions at once) stay correctable.
+
+Keep this emphasis in mind when tuning: prefer raising keyboard-plausibility for
+the right typos over lowering global thresholds, which would over-correct.
+
 ## Scoring model
 
 Each candidate carries weighted features summed into one total:
