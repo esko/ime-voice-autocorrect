@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { UserModel } from "@input-assist/autocorrect-core";
 import { createInputAssistApp } from "./inputAssistApp.js";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
 import { ExtensionImePreferences } from "../storage/imePreferences.js";
@@ -8,6 +9,17 @@ const noopAdapter = {
   commitText: async () => true,
   deleteSurroundingText: async () => true,
 };
+
+const textContext = { contextID: 1, type: "text" } as chrome.input.ime.InputContext;
+
+async function type(
+  app: { onCharacterTyped: (contextId: number, character: string) => Promise<void> },
+  text: string,
+) {
+  for (const character of text) {
+    await app.onCharacterTyped(1, character);
+  }
+}
 
 describe("createInputAssistApp", () => {
   it("applies cached shared settings to autocorrect on startup", async () => {
@@ -76,6 +88,49 @@ describe("createInputAssistApp", () => {
 
     expect(app.autocorrect.isEnabled()).toBe(false);
     expect(setMenuItems).toHaveBeenCalled();
+  });
+
+  it("stops auto-applying a correction after the user undoes it", async () => {
+    const commits: string[] = [];
+    const model = UserModel.empty();
+    const persistLearning = vi.fn();
+    const app = createInputAssistApp({
+      userModel: model,
+      persistLearning,
+      imeAdapter: {
+        getContextId: () => 1,
+        commitText: async (text) => {
+          commits.push(text);
+          return true;
+        },
+        deleteSurroundingText: async () => true,
+      },
+    });
+    app.onFocus("input-assist-us", textContext);
+
+    await type(app, "teh ");
+    expect(commits).toContain("the");
+
+    // User backspaces over the correction.
+    app.recordRejection("teh", "the");
+    expect(model.wasRejected("teh", "the")).toBe(true);
+    expect(persistLearning).toHaveBeenCalled();
+
+    // Same typo again is no longer auto-applied.
+    commits.length = 0;
+    await type(app, "teh ");
+    expect(commits).not.toContain("the");
+  });
+
+  it("records acceptance when the user types past a correction", async () => {
+    const model = UserModel.empty();
+    const app = createInputAssistApp({ userModel: model, imeAdapter: noopAdapter });
+    app.onFocus("input-assist-us", textContext);
+
+    await type(app, "teh ");
+    expect(model.score("teh", "the")).toBe(0); // not yet accepted
+    await type(app, "x"); // typing on counts as acceptance
+    expect(model.score("teh", "the")).toBeGreaterThan(0);
   });
 
   it("does not autocorrect in password fields", async () => {

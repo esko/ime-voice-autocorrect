@@ -1,4 +1,5 @@
 import type { SymSpellIndex } from "./symspell.js";
+import type { UserModel } from "./learning.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
 import {
@@ -44,6 +45,8 @@ export function confidence(
 export interface DecideOptions {
   /** Tokens the user has told us never to correct. */
   ignored?: ReadonlySet<string>;
+  /** Per-user learned preferences (accepted/rejected corrections, kept words). */
+  model?: UserModel;
 }
 
 /**
@@ -58,15 +61,23 @@ export function decideCorrection(
   if (token.length <= 2) {
     return { action: "none" };
   }
-  if (options.ignored?.has(token) || shouldIgnoreToken(token)) {
-    return { action: "none" };
-  }
 
   // Candidate generation is case-insensitive; the original token's case is kept
   // for case detection (scoring) and restoration on replacement.
   const normalized = token.toLowerCase();
 
-  // Without a full validator (Phase 4), "valid" means the exact word is known.
+  // Words the user has accepted are theirs — never touch them, like the ignore
+  // list and code/url tokens.
+  if (
+    options.ignored?.has(token) ||
+    shouldIgnoreToken(token) ||
+    (options.model?.isAcceptedWord(normalized) ?? false)
+  ) {
+    return { action: "none" };
+  }
+
+  // Valid means the exact word is known (Phase 4 adds Hunspell); valid originals
+  // are a strong baseline the best candidate must beat.
   const originalIsValid = index.hasExact(normalized);
 
   const cap = maxEditDistanceForLength(token.length);
@@ -77,7 +88,8 @@ export function decideCorrection(
       term: candidate.term,
       editDistance: candidate.editDistance,
       frequency: candidate.frequency,
-      totalScore: scoreCandidate(token, candidate),
+      totalScore:
+        scoreCandidate(token, candidate) + (options.model?.score(token, candidate.term) ?? 0),
     }))
     .sort((a, b) => b.totalScore - a.totalScore);
 
@@ -93,7 +105,11 @@ export function decideCorrection(
   const marginOverOriginal = best.totalScore - originalScore;
   const marginOverSecond = best.totalScore - secondScore;
 
+  // A correction the user has previously undone is offered, never auto-applied.
+  const rejected = options.model?.wasRejected(token, best.term) ?? false;
+
   if (
+    !rejected &&
     conf >= AUTO_REPLACE_THRESHOLD &&
     marginOverOriginal >= MIN_MARGIN_OVER_ORIGINAL &&
     marginOverSecond >= MIN_MARGIN_OVER_SECOND

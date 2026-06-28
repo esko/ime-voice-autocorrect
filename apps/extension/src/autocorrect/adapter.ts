@@ -6,6 +6,7 @@ import {
   type AutocorrectEngine,
   type Dictionary,
   type RankedCandidate,
+  type UserModel,
 } from "@input-assist/autocorrect-core";
 
 export interface ImeTextAdapter {
@@ -23,6 +24,7 @@ export interface AutocorrectImeAdapterOptions {
   dictionary?: Dictionary;
   personalDictionary?: readonly string[];
   ignoreList?: readonly string[];
+  userModel?: UserModel;
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
@@ -37,6 +39,7 @@ export interface AutocorrectImeAdapterOptions {
 export class AutocorrectImeAdapter {
   private engine: AutocorrectEngine;
   private readonly dictionary: Dictionary;
+  private readonly userModel?: UserModel;
   private enabled: boolean;
   private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
   private readonly onCorrectionUndone?: AutocorrectImeAdapterOptions["onCorrectionUndone"];
@@ -47,6 +50,7 @@ export class AutocorrectImeAdapter {
     options: AutocorrectImeAdapterOptions = {},
   ) {
     this.dictionary = options.dictionary ?? createCoreEnglishDictionary();
+    this.userModel = options.userModel;
     this.enabled = options.enabled ?? true;
     this.onCorrectionApplied = options.onCorrectionApplied;
     this.onCorrectionUndone = options.onCorrectionUndone;
@@ -55,6 +59,7 @@ export class AutocorrectImeAdapter {
       dictionary: this.dictionary,
       personalDictionary: options.personalDictionary ?? [],
       ignoreList: options.ignoreList ?? [],
+      userModel: this.userModel,
     });
   }
 
@@ -75,6 +80,7 @@ export class AutocorrectImeAdapter {
       dictionary: this.dictionary,
       personalDictionary,
       ignoreList: lists.ignoreList ?? [],
+      userModel: this.userModel,
     });
   }
 

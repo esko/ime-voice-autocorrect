@@ -156,14 +156,15 @@ Pure `autocorrect-core` work; keeps the build green throughout.
 **Done when:** medium-confidence tokens show a candidate window instead of
 silently replacing.
 
-### Phase 3 — User learning
+### Phase 3 — User learning ✅ done (context bigram deferred)
 - Track accepted / rejected correction pairs + accepted words in
   `chrome.storage.local`.
 - Backspace-immediately-after-autocorrect → undo **and** increment the rejection
   count for `original→replacement`.
 - Feed `userLearningScore` and a tiny bigram `contextScore` into the scorer.
 **Done when:** a rejected correction stops being auto-applied; an accepted one
-is reinforced.
+is reinforced. ✅ The bigram `contextScore` is still TODO — it needs the previous
+word plumbed from surrounding text into `decide()`.
 
 ### Phase 4 — Hunspell/nspell validator (deliberate dependency step)
 - Add `nspell` + a `wooorm/dictionaries` en_US Hunspell dictionary as the

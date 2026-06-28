@@ -11,6 +11,8 @@ export function registerInputAssist(
     settingsCache?: ExtensionSettingsCache;
     imePreferences?: ExtensionImePreferences;
     imeUi?: Parameters<typeof createInputAssistApp>[0]["imeUi"];
+    userModel?: Parameters<typeof createInputAssistApp>[0]["userModel"];
+    persistLearning?: Parameters<typeof createInputAssistApp>[0]["persistLearning"];
   } = {},
 ) {
   const imeAdapter =
@@ -71,6 +73,7 @@ export function registerInputAssist(
         restore: undo.original,
         deleteLength: undo.replacement.length,
       });
+      app.recordRejection(undo.original, undo.replacement);
     }
   });
 
@@ -93,6 +96,7 @@ export function registerInputAssist(
             restore: undo.original,
             deleteLength: undo.replacement.length,
           });
+          app.recordRejection(undo.original, undo.replacement);
           return true;
         }
       }

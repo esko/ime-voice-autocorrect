@@ -1,3 +1,4 @@
+import type { UserModel } from "@input-assist/autocorrect-core";
 import { AutocorrectImeAdapter } from "../autocorrect/adapter.js";
 import { InputStateManager } from "../ime/inputStateManager.js";
 import type { ExtensionSettingsCache } from "../storage/settingsCache.js";
@@ -14,6 +15,9 @@ export interface InputAssistAppOptions {
   settingsCache?: ExtensionSettingsCache;
   imePreferences?: ExtensionImePreferences;
   imeUi?: ChromeImeUiAdapter;
+  userModel?: UserModel;
+  /** Called after the user model changes so the host can persist it. */
+  persistLearning?: () => void;
 }
 
 export function createInputAssistApp(options: InputAssistAppOptions) {
@@ -22,6 +26,17 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
 
   let menuController: ImeMenuController | null = null;
   let activeEngineId: string | null = null;
+  // A just-applied auto-correction, pending accept/reject feedback.
+  let pendingCorrection: { original: string; replacement: string } | null = null;
+
+  const recordAcceptanceOfPendingCorrection = () => {
+    if (!pendingCorrection) {
+      return;
+    }
+    options.userModel?.recordAccepted(pendingCorrection.original, pendingCorrection.replacement);
+    pendingCorrection = null;
+    options.persistLearning?.();
+  };
 
   // ChromeOS rejects input.ime.setMenuItems unless it targets the engine that
   // is currently active, so every menu repaint is gated on an active engine.
@@ -56,8 +71,10 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     : null;
 
   const autocorrect = new AutocorrectImeAdapter(imeTextAdapter, {
+    userModel: options.userModel,
     onCorrectionApplied: (contextId, original, corrected) => {
       suggestions?.dismiss();
+      pendingCorrection = { original, replacement: corrected };
       stateManager.noteReplacement(original, corrected);
       void assistiveUndo?.showCorrection(contextId, original, corrected);
     },
@@ -132,12 +149,21 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     onBlur(contextId: number) {
       stateManager.onBlur(contextId);
       suggestions?.dismiss();
+      pendingCorrection = null;
+    },
+    /** Backspace (or the undo button) right after a correction = a rejection. */
+    recordRejection(original: string, replacement: string) {
+      options.userModel?.recordRejected(original, replacement);
+      pendingCorrection = null;
+      options.persistLearning?.();
     },
     async onCandidateClicked(candidateId: number) {
       const applied = await suggestions?.select(candidateId);
       if (!applied) {
         return;
       }
+      options.userModel?.recordAccepted(applied.original, applied.replacement);
+      options.persistLearning?.();
       stateManager.noteReplacement(applied.original, applied.replacement);
       const contextId = stateManager.getActiveContextId();
       if (contextId !== null) {
@@ -147,6 +173,8 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     async onCharacterTyped(contextId: number, character: string) {
       assistiveUndo?.hide();
       suggestions?.dismiss();
+      // Typing past a correction without undoing it counts as acceptance.
+      recordAcceptanceOfPendingCorrection();
       const prior = stateManager.getPreviousToken()?.text ?? "";
       stateManager.noteCommittedText(character);
       if (stateManager.canAutocorrect()) {

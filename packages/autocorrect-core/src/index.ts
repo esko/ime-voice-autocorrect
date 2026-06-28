@@ -2,6 +2,8 @@ export { createAutocorrectEngine } from "./autocorrectEngine.js";
 export type { AutocorrectEngine, CorrectionResult } from "./autocorrectEngine.js";
 export type { CorrectionDecision } from "./decision.js";
 export type { RankedCandidate } from "./scoring.js";
+export { UserModel, emptyLearningData } from "./learning.js";
+export type { UserLearningData } from "./learning.js";
 export { createCoreEnglishDictionary } from "./coreEnglishDictionary.js";
 export { createTestDictionary } from "./dictionary.js";
 export type { Dictionary, DictionaryEntry } from "./dictionary.js";
