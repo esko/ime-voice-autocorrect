@@ -186,6 +186,13 @@ No LanguageTool, no LLM completion, no grammar / full-sentence rewriting. They
 are heavier, add latency/privacy cost, and are not needed for the core keyboard
 loop. Revisit only after Phases 1–4 are solid.
 
+## Beyond the core loop
+
+Phases 1–4 are done. The longer-term direction (weighted edit distance, larger
+n-gram reranker, confusion-set real-word correction, Finnish via Voikko, and
+opt-in neural/LLM correction off the critical path) is laid out in
+`docs/future-roadmap.md`.
+
 ## Pivot note
 
 This repo originally specified a combined autocorrect + voice-dictation system

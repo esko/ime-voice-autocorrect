@@ -39,7 +39,9 @@ Load `apps/extension/dist` as an unpacked extension and add `Input Assist US` /
 ## Where to start
 
 - `docs/autocorrect-engine-plan.md` — the engine vision, scoring model, and the
-  phased build plan (start at Phase 1).
+  phased build plan (Phases 1–4 done).
+- `docs/future-roadmap.md` — where the engine goes next (weighted edit distance,
+  n-gram reranking, confusion sets, Finnish/Voikko, opt-in neural).
 - `AGENTS.md` — working agreement and architecture rules.
 - `CONTEXT.md` — domain language.
 - `docs/adr/` — architecture decisions.
