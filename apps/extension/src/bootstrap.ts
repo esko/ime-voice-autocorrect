@@ -1,6 +1,7 @@
 import { UserModel } from "@input-assist/autocorrect-core";
 import { registerInputAssist } from "./background.js";
 import { loadEnglishValidator } from "./autocorrect/nspellValidator.js";
+import { loadEnglishContext } from "./autocorrect/contextLoader.js";
 import { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import { ExtensionImePreferences } from "./storage/imePreferences.js";
 import { ExtensionUserModelStore } from "./storage/userModelStore.js";
@@ -37,6 +38,13 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     .then((validator) => app.setValidator(validator))
     .catch(() => {
       /* dictionary unavailable — keep running without the validator */
+    });
+
+  // Upgrade from the seed context table to the full bundled bigram corpus.
+  void loadEnglishContext((path) => chromeApi.runtime.getURL(path))
+    .then((context) => app.setContext(context))
+    .catch(() => {
+      /* corpus unavailable — keep running with the seed context */
     });
 }
 

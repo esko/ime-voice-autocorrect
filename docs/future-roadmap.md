@@ -14,7 +14,7 @@ only off the critical path (hotkey / sentence end / selected text).
 |---|---|---|
 | 1 | SymSpell candidate generation + nspell/Hunspell validation | ✅ done |
 | 2 | Keyboard-aware error model | ◑ as a **scoring** feature (`keyboardTypoScore`: neighbour/transpose/doubled/inserted), not yet a weighted edit-distance in candidate generation |
-| 3 | N-gram language-model reranking | ◑ bounded **trigram→bigram backoff** reranker with a seed table (`createCommonContext`); larger compressed corpus still to come |
+| 3 | N-gram language-model reranking | ✅ trigram→bigram backoff reranker; full ~242k-pair English bigram corpus bundled and loaded at start (`loadEnglishContext`) |
 | 4 | Confusion-set / real-word correction | ◑ context-gated, suggest-only-until-learned (`createCommonConfusionSets`); curated seed set, needs a larger n-gram corpus to bite |
 | 5 | Personal learning model | ✅ done (accept/reject pairs, accepted words, persisted) |
 | 6 | Small neural correction model | ✗ future, opt-in only |
@@ -29,11 +29,13 @@ confidence → replace / suggest / none.
 
 Ordered by value-for-effort. All are offline, explainable, and engine-local.
 
-1. **Expand the n-gram reranker (Level 3).** ◑ A trigram→bigram backoff model is
-   in (`createNgramContext` / `createCommonContext`), fed by the last two words.
-   Next: grow the seed tables into a compressed corpus (or a KenLM-style model
-   compiled to WASM), and add right-context (next word) when surrounding text
-   provides it. Keep the bounded score shape so context never dominates.
+1. **Expand the n-gram reranker (Level 3).** ✅ The full English bigram corpus
+   (~242k lowercase word pairs from Norvig's web-corpus counts) is bundled as a
+   packaged file and loaded by the service worker on start (`loadEnglishContext`
+   → `app.setContext`); the seed table is the fallback until it loads. Regenerate
+   with `node scripts/build-ngrams.mjs` (needs network; output is committed).
+   Next: bundle a **trigram** corpus too, add right-context (next word) when
+   surrounding text provides it, or move to a KenLM-style WASM model.
 
 2. **Confusion-set real-word correction (Level 4).** ◑ In: a curated confusion
    table (`createCommonConfusionSets`) is consulted only when the original is a

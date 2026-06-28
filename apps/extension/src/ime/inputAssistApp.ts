@@ -1,4 +1,4 @@
-import type { UserModel, Validator } from "@input-assist/autocorrect-core";
+import type { UserModel, Validator, ContextModel } from "@input-assist/autocorrect-core";
 import { AutocorrectImeAdapter } from "../autocorrect/adapter.js";
 import { InputStateManager } from "../ime/inputStateManager.js";
 import type { ExtensionSettingsCache } from "../storage/settingsCache.js";
@@ -116,6 +116,9 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     },
     setValidator(validator: Validator) {
       autocorrect.setValidator(validator);
+    },
+    setContext(context: ContextModel) {
+      autocorrect.setContext(context);
     },
     onDeactivated(engineId: string) {
       if (activeEngineId === engineId) {

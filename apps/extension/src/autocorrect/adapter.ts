@@ -49,7 +49,7 @@ export class AutocorrectImeAdapter {
   private readonly dictionary: Dictionary;
   private readonly userModel?: UserModel;
   private validator?: Validator;
-  private readonly context: ContextModel;
+  private context: ContextModel;
   private readonly confusion: ConfusionSets;
   private personalDictionary: readonly string[];
   private ignoreList: readonly string[];
@@ -99,6 +99,12 @@ export class AutocorrectImeAdapter {
   /** Upgrade the spell validator (e.g. once the Hunspell dictionary loads). */
   setValidator(validator: Validator): void {
     this.validator = validator;
+    this.engine = this.buildEngine();
+  }
+
+  /** Upgrade the context model (e.g. once the bundled n-gram corpus loads). */
+  setContext(context: ContextModel): void {
+    this.context = context;
     this.engine = this.buildEngine();
   }
 
