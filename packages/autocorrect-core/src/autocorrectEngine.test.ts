@@ -77,19 +77,20 @@ describe("autocorrect on word boundary", () => {
   });
 
   it("does not correct ambiguous candidates", () => {
+    // "cot" is one edit from both "cat" and "cut" with equal frequency, so the
+    // margin is zero and the engine must not pick one over the other.
     const engine = createAutocorrectEngine({
       dictionary: createTestDictionary({
         entries: [
           { word: "cat", frequency: 100 },
-          { word: "car", frequency: 100 },
+          { word: "cut", frequency: 100 },
         ],
       }),
-      minConfidence: 1.2,
     });
 
-    expect(engine.correctToken("cqt")).toEqual({
+    expect(engine.correctToken("cot")).toEqual({
       kind: "unchanged",
-      original: "cqt",
+      original: "cot",
     });
   });
 
