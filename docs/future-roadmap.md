@@ -34,8 +34,13 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    packaged file and loaded by the service worker on start (`loadEnglishContext`
    → `app.setContext`); the seed table is the fallback until it loads. Regenerate
    with `node scripts/build-ngrams.mjs` (needs network; output is committed).
-   Next: bundle a **trigram** corpus too, add right-context (next word) when
-   surrounding text provides it, or move to a KenLM-style WASM model.
+   A trigram corpus is also bundled (orgtre Google-Books top-3000;
+   `en-trigrams.txt`), so the trigram→bigram backoff is data-backed. **Preferred
+   upgrade:** subs2vec's subtitle-based English trigram counts (larger, closer to
+   real typing) — its host (`archive.mpi.nl`) blocks automated downloads, so
+   download the English OpenSubtitles "trigram counts" file by hand and run
+   `node scripts/build-ngrams.mjs path/to/that-file`. Next: right-context (next
+   word) when surrounding text provides it, or a KenLM-style WASM model.
 
 2. **Confusion-set real-word correction (Level 4).** ◑ In: a curated confusion
    table (`createCommonConfusionSets`) is consulted only when the original is a
