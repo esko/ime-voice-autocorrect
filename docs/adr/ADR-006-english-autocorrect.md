@@ -8,7 +8,8 @@ Accepted.
 
 Implement autocorrect for English only in the first complete release.
 
-Autocorrect runs in both the US and Finnish IME entries, but must avoid changing Finnish-looking or technical tokens.
+Autocorrect runs in the US-layout Input Assist IME and must avoid changing
+Finnish-looking or technical tokens pasted or typed through it.
 
 ## Rationale
 

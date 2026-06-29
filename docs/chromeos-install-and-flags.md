@@ -12,9 +12,7 @@ pnpm build   # outputs apps/extension/dist
 1. Open `chrome://extensions`.
 2. Enable Developer mode.
 3. Load unpacked → `apps/extension/dist`.
-4. Open ChromeOS input settings and add/select:
-   - `Input Assist US`
-   - `Input Assist Finnish`
+4. Open ChromeOS input settings and add/select `Input Assist`.
 
 ## ChromeOS gotchas
 

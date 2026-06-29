@@ -2,11 +2,9 @@
 
 ## User goal
 
-A discreet, fast ChromeOS typing aid. The user switches between US and Finnish
-keyboard layouts; the product replaces those with assisted ChromeOS IME entries:
+A discreet, fast ChromeOS typing aid exposed as one assisted ChromeOS IME entry:
 
-- `Input Assist US`
-- `Input Assist Finnish`
+- `Input Assist` (`us::eng`)
 
 It must work across ChromeOS applications through the ChromeOS input method
 system, not only inside browser web pages.
@@ -16,7 +14,7 @@ system, not only inside browser web pages.
 ### IME extension
 
 - Manifest V3 ChromeOS-only IME.
-- Two `input_components` (US, Finnish), one layout each.
+- One `input_components` entry (`Input Assist`, `us::eng`).
 - Normal keystrokes pass through; the IME tracks recent text.
 - Surrounding-text tracking via `onSurroundingTextChanged`.
 - Text replacement via `deleteSurroundingText` + `commitText`.
@@ -26,7 +24,7 @@ system, not only inside browser web pages.
 
 ### Autocorrect engine (`autocorrect-core`)
 
-- English only; same engine for both IME entries.
+- English only.
 - Word-level correction on a delimiter, not on every keystroke.
 - SymSpell candidate generation + keyboard-typo-aware scoring.
 - Margin-based confidence with three outcomes: replace / suggest / none.

@@ -14,7 +14,7 @@ The product must work across ChromeOS applications, not only browser content pag
 
 ## Consequences
 
-- The user must select `Input Assist US` or `Input Assist Finnish` as the active ChromeOS input method.
-- Built-in US/Finnish layouts are not enhanced in place.
-- The extension must define separate input methods because ChromeOS supports one layout per input method.
+- The user must select `Input Assist` as the active ChromeOS input method.
+- The built-in US layout is not enhanced in place.
+- The extension exposes one input method with one layout (`us::eng`).
 - The API is ChromeOS-only and should be tested on the actual target Chromebook.

@@ -31,10 +31,9 @@ Implementation facts to validate on the target Chromebook during development.
 
 ## input_components
 
-- Two `input_components` (US, Finnish); ChromeOS supports one layout per input
-  method.
-- Initial layout IDs: US `us::eng`, Finnish `fi::fin`. If the runtime requires
-  `xkb:`-prefixed IDs, document the exact accepted strings here.
+- One `input_components` entry named `Input Assist`, with id `input-assist`.
+- The configured layout ID is `us::eng`. If the runtime requires an
+  `xkb:`-prefixed ID, document the exact accepted string here.
 
 ## Extension loading on ChromeOS
 

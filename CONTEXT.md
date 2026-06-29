@@ -1,7 +1,7 @@
 # Input Assist
 
-A ChromeOS autocorrect keyboard that replaces the user's US and Finnish keyboard
-layouts with assisted IME entries offering English autocorrect.
+A ChromeOS autocorrect keyboard that provides one assisted US-layout IME entry
+offering English autocorrect.
 
 ## Language
 
@@ -13,8 +13,7 @@ ChromeOS disambiguation is needed)
 
 **Input Method**:
 A ChromeOS IME entry the user selects from the system input picker. Input Assist
-exposes exactly two: Input Assist US and Input Assist Finnish. Each Input Method
-maps to exactly one keyboard layout.
+exposes exactly one, named Input Assist, mapped to `us::eng`.
 _Avoid_: Layout, keyboard mode, input component (use in Chrome API context only)
 
 **Autocorrect**:

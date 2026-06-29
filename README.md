@@ -1,10 +1,9 @@
 # ChromeOS Input Assist
 
 A personal **ChromeOS autocorrect keyboard**: a Manifest V3 ChromeOS IME
-extension that offers English autocorrect on US and Finnish layouts.
+extension that offers English autocorrect on a US layout.
 
-- Two IME input methods — `Input Assist US` and `Input Assist Finnish` — each
-  mapped to one keyboard layout.
+- One IME input method — `Input Assist` — mapped to `us::eng`.
 - English autocorrect applied at word boundaries, with undo-on-backspace.
 - A reusable, Chrome-agnostic autocorrect engine
   (`packages/autocorrect-core`): SymSpell candidate generation + a
@@ -31,8 +30,8 @@ pnpm test
 pnpm build
 ```
 
-Load `apps/extension/dist` as an unpacked extension and add `Input Assist US` /
-`Input Assist Finnish` in ChromeOS input settings. See
+Load `apps/extension/dist` as an unpacked extension and add `Input Assist` in
+ChromeOS input settings. See
 `docs/chromeos-install-and-flags.md` for the install steps and
 `docs/manual-test-plan.md` for on-device checks.
 

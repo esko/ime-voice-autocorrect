@@ -3,7 +3,7 @@
 ## Mission
 
 Build a **ChromeOS autocorrect keyboard**: a Manifest V3 ChromeOS IME extension
-that offers English autocorrect on US and Finnish layouts. This project is for
+that offers English autocorrect on one US layout. This project is for
 one user on ChromeOS. Do not spend effort on broad compatibility, other
 browsers, Android, Linux apps, or web-page-only content scripts.
 
@@ -14,8 +14,7 @@ history remains in git if dictation is revived later.
 ## Current shape
 
 - One MV3 ChromeOS IME extension (`apps/extension`).
-- Two IME input methods: `Input Assist US` and `Input Assist Finnish`, each with
-  exactly one keyboard layout.
+- One IME input method: `Input Assist`, mapped to `us::eng`.
 - English-only autocorrect, applied at word boundaries, with undo-on-backspace.
 - A reusable, Chrome-agnostic engine in `packages/autocorrect-core`.
 

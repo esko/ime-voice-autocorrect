@@ -5,7 +5,7 @@
 ```text
 ChromeOS Input Assist
 └── apps/extension/                      Manifest V3 ChromeOS IME
-    ├── Input Assist US / Finnish input methods
+    ├── Input Assist input method (`us::eng`)
     ├── active context tracking (focus/blur/surrounding text)
     ├── key handling (pass-through + boundary detection)
     ├── commit / delete text adapter
@@ -35,7 +35,7 @@ Chrome-agnostic and unit-tested outside ChromeOS. **No `chrome.*` imports.**
 ## Typing / autocorrect flow
 
 ```text
-1. User selects Input Assist US or Input Assist Finnish.
+1. User selects Input Assist.
 2. IME receives the focus context (onFocus).
 3. Normal keystrokes pass through (onKeyEvent returns false) and are tracked.
 4. Recent text is tracked via key events and onSurroundingTextChanged.
