@@ -39,12 +39,21 @@ describe("real-word correction via confusion sets", () => {
     }
   });
 
-  it("auto-applies the swap only after the user has accepted it", () => {
+  it("never auto-applies a real-word swap, even one the user accepted before", () => {
+    // Replacing a correctly-spelled word is the worst failure mode, so a learned
+    // confusion swap is still only offered — the user keeps the final say.
     const model = UserModel.empty();
     model.recordAccepted("form", "from");
-    expect(
-      decideCorrection("form", index, { confusion, context, previousWords: ["came"], model }),
-    ).toMatchObject({ action: "replace", replacement: "from" });
+    const decision = decideCorrection("form", index, {
+      confusion,
+      context,
+      previousWords: ["came"],
+      model,
+    });
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("from");
+    }
   });
 
   it("leaves the valid word alone without supporting context", () => {

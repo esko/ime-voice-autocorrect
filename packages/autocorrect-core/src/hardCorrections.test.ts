@@ -54,4 +54,18 @@ describe("decideCorrection with hard corrections", () => {
       decideCorrection("definately", index, { hardCorrections, model }).action,
     ).toBe("none");
   });
+
+  it("corrects accidental-shift typos (all-caps and mid-word capital)", () => {
+    const hard = createHardCorrections({ teh: "the" });
+    // All-caps and a stray internal capital are motor slips, not code — they must
+    // still correct (and preserve the all-caps shape).
+    expect(decideCorrection("TEH", index, { hardCorrections: hard })).toMatchObject({
+      action: "replace",
+      replacement: "THE",
+    });
+    expect(decideCorrection("tEh", index, { hardCorrections: hard })).toMatchObject({
+      action: "replace",
+      replacement: "the",
+    });
+  });
 });

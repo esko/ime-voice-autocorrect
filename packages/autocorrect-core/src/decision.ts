@@ -69,16 +69,22 @@ export interface DecideOptions {
   repRules?: RepRules;
 }
 
-/** Minimum context advantage for a confused alternative to be offered. */
-const CONFUSION_MIN_ADVANTAGE = 0.5;
+/**
+ * Minimum context advantage for a confused alternative to be offered. Kept high
+ * on purpose: the seed/bigram context is noisy, and a confusion suggestion that
+ * pops up while the user is typing a perfectly correct word ("their", "were") is
+ * intrusive. Only a clear contextual mismatch should surface an alternative.
+ */
+const CONFUSION_MIN_ADVANTAGE = 1.2;
 
 /**
- * Real-word correction: when the original is itself a valid word, only a curated
- * confusion alternative that context clearly prefers is offered — and it is
- * auto-applied only if the user has accepted that exact swap before.
+ * Real-word correction: when the original is itself a valid word, a curated
+ * confusion alternative that context clearly prefers is *suggested* — never
+ * silently auto-applied. Replacing a word the user spelled correctly is the
+ * worst failure mode, so even a learned/accepted swap stays a suggestion; the
+ * user keeps the final say via the candidate window.
  */
 function confusionDecision(
-  token: string,
   normalized: string,
   options: DecideOptions,
 ): CorrectionDecision | null {
@@ -103,8 +109,7 @@ function confusionDecision(
     .filter((entry) => entry.advantage >= CONFUSION_MIN_ADVANTAGE)
     .sort((a, b) => b.totalScore - a.totalScore);
 
-  const best = ranked[0];
-  if (!best) {
+  if (ranked.length === 0) {
     return null;
   }
 
@@ -115,15 +120,6 @@ function confusionDecision(
     totalScore: entry.totalScore,
   }));
 
-  if (options.model?.wasAccepted(normalized, best.term) ?? false) {
-    return {
-      action: "replace",
-      original: token,
-      replacement: restoreCase(token, best.term),
-      confidence: 1,
-      candidates,
-    };
-  }
   return { action: "suggest", candidates };
 }
 
@@ -160,7 +156,7 @@ export function decideCorrection(
   const originalIsValid =
     index.hasExact(normalized) || (options.validator?.isValid(normalized) ?? false);
   if (originalIsValid) {
-    return confusionDecision(token, normalized, options) ?? { action: "none" };
+    return confusionDecision(normalized, options) ?? { action: "none" };
   }
 
   // Curated common misspellings are corrected with high confidence, unless the
