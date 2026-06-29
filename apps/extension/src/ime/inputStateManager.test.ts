@@ -108,6 +108,11 @@ describe("InputStateManager", () => {
     expect(manager.canAutocorrect()).toBe(false);
   });
 
+  it("allows an opted-out field when the user explicitly enables correction", () => {
+    manager.onFocus(createContext(1, "text", false));
+    expect(manager.canAutocorrect(true)).toBe(true);
+  });
+
   it("unrelated typing clears stale undo state", () => {
     manager.onFocus(createContext(1));
     manager.noteReplacement("teh", "the");

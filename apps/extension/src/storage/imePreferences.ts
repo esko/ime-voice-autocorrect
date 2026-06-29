@@ -1,9 +1,12 @@
 export interface ImePreferences {
   autocorrectEnabled: boolean;
+  /** Correct even in fields that opt out (terminals, code editors) via Backspace. */
+  correctOptedOutFields: boolean;
 }
 
 export const DEFAULT_IME_PREFERENCES: ImePreferences = {
   autocorrectEnabled: true,
+  correctOptedOutFields: false,
 };
 
 export interface PreferencesStorage {

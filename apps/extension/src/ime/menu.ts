@@ -1,9 +1,11 @@
 export interface ImeMenuState {
   autocorrectEnabled: boolean;
+  correctOptedOutFields: boolean;
 }
 
 export const IME_MENU_ITEM_IDS = {
   toggleAutocorrect: "toggle-autocorrect",
+  toggleCorrectOptedOut: "toggle-correct-opted-out",
   manageCorrections: "manage-corrections",
 } as const;
 
@@ -27,6 +29,13 @@ export function buildImeMenuItems(state: ImeMenuState): ImeMenuItem[] {
       enabled: true,
     },
     {
+      id: IME_MENU_ITEM_IDS.toggleCorrectOptedOut,
+      label: "Correct in terminals & code fields",
+      style: "check",
+      checked: state.correctOptedOutFields,
+      enabled: true,
+    },
+    {
       id: IME_MENU_ITEM_IDS.manageCorrections,
       label: "Manage learned corrections…",
       style: "none",
@@ -41,6 +50,9 @@ export function applyMenuItemToggle(
 ): ImeMenuState | null {
   if (itemId === IME_MENU_ITEM_IDS.toggleAutocorrect) {
     return { ...state, autocorrectEnabled: !state.autocorrectEnabled };
+  }
+  if (itemId === IME_MENU_ITEM_IDS.toggleCorrectOptedOut) {
+    return { ...state, correctOptedOutFields: !state.correctOptedOutFields };
   }
   return null;
 }

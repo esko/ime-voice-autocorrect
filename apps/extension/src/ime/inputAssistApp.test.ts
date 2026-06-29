@@ -156,4 +156,39 @@ describe("createInputAssistApp", () => {
 
     expect(commits).toEqual([]);
   });
+
+  it("corrects an opted-out field with Backspaces when the user enables it", async () => {
+    const preferences = new ExtensionImePreferences({
+      get: async () => ({
+        imePreferences: { autocorrectEnabled: true, correctOptedOutFields: true },
+      }),
+      set: async () => {},
+    });
+    const sendBackspaces = vi.fn(async () => true);
+    const commitText = vi.fn(async () => true);
+    const app = createInputAssistApp({
+      imePreferences: preferences,
+      imeUi: {
+        setMenuItems: () => {},
+        setAssistiveWindowProperties: () => {},
+      },
+      imeAdapter: {
+        getContextId: () => 1,
+        commitText,
+        deleteSurroundingText: vi.fn(async () => true),
+        sendBackspaces,
+      },
+    });
+
+    await app.hydrateImePreferences();
+    app.onFocus("input-assist-us", {
+      contextID: 1,
+      type: "text",
+      autoCorrect: false,
+    } as chrome.input.ime.InputContext);
+    await type(app, "teh ");
+
+    expect(sendBackspaces).toHaveBeenCalledWith(3);
+    expect(commitText).toHaveBeenCalledWith("the ");
+  });
 });

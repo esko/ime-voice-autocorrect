@@ -10,6 +10,12 @@ Implementation facts to validate on the target Chromebook during development.
   `onBlur`.
 - `commitText` commits text to the current input context;
   `deleteSurroundingText` deletes around the caret.
+- `sendKeyEvents` accepts a target `contextID` plus a sequence of keyboard
+  events. The extension uses paired Backspace keydown/keyup events as an
+  opt-in fallback for terminals and code fields that set `autoCorrect=false`
+  and ignore `deleteSurroundingText`. This path defaults off. Verify on the
+  target Chromebook that the Terminal consumes the synthetic Backspaces and
+  that the events do not re-enter the IME's `onKeyEvent` listener.
 - `onKeyEvent` returns a boolean: **`true` consumes the key (it is swallowed);
   `false` passes it through** (the character types normally). Return `true` only
   for keys the IME actually handles.

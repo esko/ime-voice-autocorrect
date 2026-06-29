@@ -6,8 +6,11 @@ import {
 } from "./menu.js";
 
 describe("buildImeMenuItems", () => {
-  it("shows an autocorrect toggle reflecting the current state, plus a manage entry", () => {
-    const items = buildImeMenuItems({ autocorrectEnabled: true });
+  it("shows the opted-out-field toggle reflecting the current state", () => {
+    const items = buildImeMenuItems({
+      autocorrectEnabled: true,
+      correctOptedOutFields: false,
+    });
     expect(items[0]).toEqual({
       id: IME_MENU_ITEM_IDS.toggleAutocorrect,
       label: "Autocorrect",
@@ -15,16 +18,27 @@ describe("buildImeMenuItems", () => {
       checked: true,
       enabled: true,
     });
-    expect(items.map((item) => item.id)).toContain(IME_MENU_ITEM_IDS.manageCorrections);
+    expect(items[1]).toEqual({
+      id: IME_MENU_ITEM_IDS.toggleCorrectOptedOut,
+      label: "Correct in terminals & code fields",
+      style: "check",
+      checked: false,
+      enabled: true,
+    });
   });
 });
 
 describe("applyMenuItemToggle", () => {
-  it("toggles the autocorrect flag and ignores unknown items", () => {
-    const initial = { autocorrectEnabled: true };
+  it("toggles each preference independently and ignores unknown items", () => {
+    const initial = { autocorrectEnabled: true, correctOptedOutFields: false };
 
     expect(applyMenuItemToggle(IME_MENU_ITEM_IDS.toggleAutocorrect, initial)).toEqual({
       autocorrectEnabled: false,
+      correctOptedOutFields: false,
+    });
+    expect(applyMenuItemToggle(IME_MENU_ITEM_IDS.toggleCorrectOptedOut, initial)).toEqual({
+      autocorrectEnabled: true,
+      correctOptedOutFields: true,
     });
     expect(applyMenuItemToggle("nope", initial)).toBeNull();
   });

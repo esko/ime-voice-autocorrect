@@ -2,6 +2,7 @@ export interface ChromeImeTextAdapter {
   getContextId(): number | null;
   commitText(text: string): Promise<boolean>;
   deleteSurroundingText(length: number): Promise<boolean>;
+  sendBackspaces(length: number): Promise<boolean>;
 }
 
 export function createChromeImeAdapter(
@@ -36,6 +37,22 @@ export function createChromeImeAdapter(
             offset: -length,
             length,
           },
+          () => resolve(true),
+        );
+      }),
+    sendBackspaces: (length) =>
+      new Promise((resolve) => {
+        const context = getContext();
+        if (!context) {
+          resolve(false);
+          return;
+        }
+        const keyData = Array.from({ length }, () => [
+          { key: "Backspace", code: "Backspace", type: "keydown" },
+          { key: "Backspace", code: "Backspace", type: "keyup" },
+        ]).flat();
+        chromeApi.input.ime.sendKeyEvents(
+          { contextID: context.contextID, keyData },
           () => resolve(true),
         );
       }),

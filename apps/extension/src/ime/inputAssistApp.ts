@@ -26,6 +26,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
 
   let menuController: ImeMenuController | null = null;
   let activeEngineId: string | null = null;
+  let correctOptedOutFields = DEFAULT_IME_PREFERENCES.correctOptedOutFields;
   // A just-applied auto-correction, pending accept/reject feedback.
   let pendingCorrection: { original: string; replacement: string } | null = null;
 
@@ -48,7 +49,10 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   };
 
   const syncMenuStatus = () => {
-    menuController?.update({ autocorrectEnabled: autocorrect.isEnabled() });
+    menuController?.update({
+      autocorrectEnabled: autocorrect.isEnabled(),
+      correctOptedOutFields,
+    });
     refreshActiveImeMenu();
   };
 
@@ -56,7 +60,12 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   const imeTextAdapter = {
     deleteSurroundingText: async (contextId: number, length: number) => {
       if (options.imeAdapter.getContextId() === contextId) {
-        await options.imeAdapter.deleteSurroundingText(length);
+        const context = stateManager.getActiveContext();
+        if (context?.autoCorrect === false && correctOptedOutFields) {
+          await options.imeAdapter.sendBackspaces(length);
+        } else {
+          await options.imeAdapter.deleteSurroundingText(length);
+        }
       }
     },
     commitText: async (contextId: number, text: string) => {
@@ -101,11 +110,12 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   if (options.imeUi) {
     menuController = new ImeMenuController(
       options.imeUi,
-      { autocorrectEnabled: DEFAULT_IME_PREFERENCES.autocorrectEnabled },
+      { ...DEFAULT_IME_PREFERENCES },
       (state) => {
         autocorrect.setEnabled(state.autocorrectEnabled);
+        correctOptedOutFields = state.correctOptedOutFields;
         if (options.imePreferences) {
-          void options.imePreferences.save({ autocorrectEnabled: state.autocorrectEnabled });
+          void options.imePreferences.save(state);
         }
       },
     );
@@ -160,8 +170,9 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
         return;
       }
       const preferences = await options.imePreferences.load();
-      menuController.update({ autocorrectEnabled: preferences.autocorrectEnabled });
+      menuController.update(preferences);
       autocorrect.setEnabled(preferences.autocorrectEnabled);
+      correctOptedOutFields = preferences.correctOptedOutFields;
       refreshActiveImeMenu();
     },
     onFocus(_engineId: string, context: chrome.input.ime.InputContext) {
@@ -209,7 +220,7 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       const prior = stateManager.getPreviousToken()?.text ?? "";
       const previousWords = stateManager.getPreviousWords();
       stateManager.noteCommittedText(character);
-      if (!stateManager.canAutocorrect()) {
+      if (!stateManager.canAutocorrect(correctOptedOutFields)) {
         return false;
       }
       const evaluation = autocorrect.evaluate(prior, character, previousWords);

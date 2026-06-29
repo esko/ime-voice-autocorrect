@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_IME_PREFERENCES, ExtensionImePreferences } from "./imePreferences.js";
 
 describe("ExtensionImePreferences", () => {
-  it("persists autocorrect and dictation toggles", async () => {
+  it("persists autocorrect and opted-out-field toggles", async () => {
     const memory: Record<string, unknown> = {};
     const preferences = new ExtensionImePreferences({
       get: async (keys) =>
@@ -12,10 +12,10 @@ describe("ExtensionImePreferences", () => {
       },
     });
 
-    await preferences.save({ autocorrectEnabled: false, dictationEnabled: true });
+    await preferences.save({ autocorrectEnabled: false, correctOptedOutFields: true });
     expect(await preferences.load()).toEqual({
       autocorrectEnabled: false,
-      dictationEnabled: true,
+      correctOptedOutFields: true,
     });
     expect(await preferences.load()).not.toEqual(DEFAULT_IME_PREFERENCES);
   });

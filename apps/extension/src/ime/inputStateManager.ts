@@ -91,7 +91,7 @@ export class InputStateManager {
     return this.activeContext;
   }
 
-  canAutocorrect(): boolean {
+  canAutocorrect(correctOptedOutFields = false): boolean {
     if (!this.activeContext) {
       return false;
     }
@@ -99,11 +99,10 @@ export class InputStateManager {
     if (type === "password" || type === "url" || type === "email" || type === "number") {
       return false;
     }
-    // Respect the field's own preference. Terminals (e.g. the ChromeOS Terminal
-    // app) and code editors set autoCorrect=false; they also tend not to support
-    // deleteSurroundingText, so correcting there leaves the original word in place
-    // and appends the replacement — duplicating text. Never correct such fields.
-    if (this.activeContext.autoCorrect === false) {
+    // Terminals and code editors typically opt out and may not support
+    // deleteSurroundingText. Only enter that path after an explicit user opt-in;
+    // the app then deletes with synthetic Backspace events instead.
+    if (this.activeContext.autoCorrect === false && !correctOptedOutFields) {
       return false;
     }
     return true;
