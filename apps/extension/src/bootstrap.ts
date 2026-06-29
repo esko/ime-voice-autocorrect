@@ -29,9 +29,12 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     },
   });
 
-  void app.hydrateSettingsFromCache();
-  void app.hydrateImePreferences();
-  void userModelStore.load().then((data) => userModel.hydrate(data));
+  void app.hydrateSettingsFromCache().catch(() => {});
+  void app.hydrateImePreferences().catch(() => {});
+  void userModelStore
+    .load()
+    .then((data) => userModel.hydrate(data))
+    .catch(() => {});
 
   // Upgrade to the Hunspell validator once its bundled dictionary loads. Until
   // then the frequency list alone drives corrections.
@@ -54,6 +57,33 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     .catch(() => {});
 }
 
+/**
+ * Swallow transient ChromeOS platform rejections. When the MV3 service worker is
+ * starting or restarting (e.g. right after the extension is reloaded), input.ime
+ * and storage calls can reject with platform errors like "No SW" (no service
+ * worker) or "Context is not active". They are benign — the operation simply
+ * targeted a worker/context that was momentarily gone — and must not surface as
+ * uncaught-in-promise errors. Anything else is left to surface normally.
+ */
+const BENIGN_PLATFORM_REJECTION = /No SW|not active|inactive|No window|no longer active/i;
+
+function installPlatformRejectionGuard(): void {
+  const globalScope = globalThis as unknown as {
+    addEventListener?: (
+      type: "unhandledrejection",
+      listener: (event: { reason?: unknown; preventDefault: () => void }) => void,
+    ) => void;
+  };
+  globalScope.addEventListener?.("unhandledrejection", (event) => {
+    const reason = event.reason as { message?: string } | string | undefined;
+    const message = typeof reason === "string" ? reason : (reason?.message ?? "");
+    if (BENIGN_PLATFORM_REJECTION.test(message)) {
+      event.preventDefault();
+    }
+  });
+}
+
 if (typeof chrome !== "undefined" && chrome.runtime?.id) {
+  installPlatformRejectionGuard();
   bootstrapExtension(chrome);
 }
