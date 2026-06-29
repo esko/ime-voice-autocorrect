@@ -11,6 +11,21 @@ describe("hard corrections", () => {
     expect(hard.correctionFor("Recieve")).toBe("receive");
     expect(hard.correctionFor("hello")).toBeNull();
   });
+
+  it("covers the expanded misspelling set", () => {
+    const hard = createCommonHardCorrections();
+    expect(hard.correctionFor("accomodate")).toBe("accommodate");
+    expect(hard.correctionFor("seperate")).toBe("separate");
+    expect(hard.correctionFor("Tommorrow")).toBe("tomorrow");
+    expect(hard.correctionFor("vehical")).toBe("vehicle");
+  });
+
+  it("never maps a misspelling to itself (no-op guard)", () => {
+    const hard = createCommonHardCorrections();
+    for (const word of ["accomodate", "recieve", "writting", "irresistable"]) {
+      expect(hard.correctionFor(word)).not.toBe(word);
+    }
+  });
 });
 
 describe("decideCorrection with hard corrections", () => {
