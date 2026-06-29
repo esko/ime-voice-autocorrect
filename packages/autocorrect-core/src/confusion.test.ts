@@ -107,4 +107,76 @@ describe("real-word correction via confusion sets", () => {
       expect(decision.candidates[0]?.term).toBe("whether");
     }
   });
+
+  it("offers past after walked instead of the verb passed", () => {
+    const pastIndex = SymSpellIndex.build(
+      [
+        { word: "passed", frequency: 2_000 },
+        { word: "past", frequency: 2_000 },
+      ],
+      { maxEditDistance: 2 },
+    );
+    const movementContext = createNgramContext({
+      bigrams: { "walked past": 146_951 },
+    });
+
+    const decision = decideCorrection("passed", pastIndex, {
+      confusion,
+      context: movementContext,
+      previousWords: ["walked"],
+    });
+
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("past");
+    }
+  });
+
+  it("offers here after right instead of the verb hear", () => {
+    const hereIndex = SymSpellIndex.build(
+      [
+        { word: "hear", frequency: 2_000 },
+        { word: "here", frequency: 2_000 },
+      ],
+      { maxEditDistance: 2 },
+    );
+    const locationContext = createNgramContext({
+      bigrams: { "right here": 2_713_625 },
+    });
+
+    const decision = decideCorrection("hear", hereIndex, {
+      confusion,
+      context: locationContext,
+      previousWords: ["right"],
+    });
+
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("here");
+    }
+  });
+
+  it("offers peace after at instead of a physical piece", () => {
+    const peaceIndex = SymSpellIndex.build(
+      [
+        { word: "peace", frequency: 2_000 },
+        { word: "piece", frequency: 2_000 },
+      ],
+      { maxEditDistance: 2 },
+    );
+    const stateContext = createNgramContext({
+      bigrams: { "at peace": 470_135 },
+    });
+
+    const decision = decideCorrection("piece", peaceIndex, {
+      confusion,
+      context: stateContext,
+      previousWords: ["at"],
+    });
+
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("peace");
+    }
+  });
 });
