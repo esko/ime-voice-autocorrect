@@ -1,11 +1,11 @@
-import { UserModel } from "@input-assist/autocorrect-core";
+import { UserModel, emptyLearningData, type UserLearningData } from "@input-assist/autocorrect-core";
 import { registerInputAssist } from "./background.js";
 import { loadEnglishValidator } from "./autocorrect/nspellValidator.js";
 import { loadEnglishContext } from "./autocorrect/contextLoader.js";
 import { loadEnglishDictionary } from "./autocorrect/dictionaryLoader.js";
 import { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import { ExtensionImePreferences } from "./storage/imePreferences.js";
-import { ExtensionUserModelStore } from "./storage/userModelStore.js";
+import { ExtensionUserModelStore, USER_LEARNING_KEY } from "./storage/userModelStore.js";
 
 export function bootstrapExtension(chromeApi: typeof chrome): void {
   if (!chromeApi.input?.ime) {
@@ -35,6 +35,18 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
     .load()
     .then((data) => userModel.hydrate(data))
     .catch(() => {});
+
+  // Reflect edits made in the options page (remove a learned rejection, etc.)
+  // in the live engine immediately, without waiting for a service-worker restart.
+  chromeApi.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local") {
+      return;
+    }
+    const change = changes[USER_LEARNING_KEY];
+    if (change) {
+      userModel.replace((change.newValue as UserLearningData | undefined) ?? emptyLearningData());
+    }
+  });
 
   // Upgrade to the Hunspell validator once its bundled dictionary loads. Until
   // then the frequency list alone drives corrections.

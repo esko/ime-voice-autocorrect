@@ -62,7 +62,7 @@ describe("bootstrapExtension IME wiring", () => {
           setAssistiveWindowProperties: vi.fn(),
         },
       },
-      storage: { local: storage },
+      storage: { local: storage, onChanged: { addListener: vi.fn() } },
       runtime: { id: "ext-test", onConnectExternal: { addListener: vi.fn() } },
       tabs: { create: vi.fn(async () => {}) },
     } as never;

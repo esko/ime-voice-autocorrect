@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Input Assist — Learned corrections</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Roboto", sans-serif;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 44rem;
+        padding: 2rem 1.25rem 4rem;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 0 0 0.25rem;
+      }
+      .lede {
+        margin: 0 0 1.5rem;
+        opacity: 0.8;
+      }
+      section {
+        margin: 1.75rem 0;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 0.25rem;
+      }
+      .hint {
+        margin: 0 0 0.75rem;
+        font-size: 0.85rem;
+        opacity: 0.7;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.55rem 0.85rem;
+      }
+      li:not(:last-child) {
+        border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+      }
+      .entry {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.95rem;
+      }
+      .empty {
+        margin: 0;
+        opacity: 0.6;
+        font-style: italic;
+      }
+      button.remove {
+        flex: none;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: transparent;
+        color: inherit;
+        border-radius: 0.4rem;
+        padding: 0.3rem 0.7rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      button.remove:hover {
+        background: color-mix(in srgb, currentColor 10%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Learned corrections</h1>
+    <p class="lede">
+      Input Assist adapts to you. Here you can review what it has learned and remove anything that
+      is wrong — for example a correction you undid by accident, which then stops auto-correcting.
+    </p>
+    <main id="app"></main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

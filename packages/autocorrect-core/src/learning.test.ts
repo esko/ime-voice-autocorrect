@@ -23,6 +23,18 @@ describe("UserModel", () => {
     const restored = UserModel.fromSnapshot(model.snapshot());
     expect(restored.isAcceptedWord("esko")).toBe(true);
   });
+
+  it("replace() removes entries that are no longer present (unlike hydrate)", () => {
+    const model = UserModel.empty();
+    model.recordRejected("teh", "the");
+    model.recordRejected("adn", "and");
+    expect(model.wasRejected("teh", "the")).toBe(true);
+
+    // The user deleted the "teh -> the" rejection in the options page.
+    model.replace({ rejectedCorrections: { "adn→and": 1 } });
+    expect(model.wasRejected("teh", "the")).toBe(false);
+    expect(model.wasRejected("adn", "and")).toBe(true);
+  });
 });
 
 describe("decideCorrection with a user model", () => {

@@ -79,6 +79,17 @@ export class UserModel {
     Object.assign(this.data.acceptedWords, data.acceptedWords);
   }
 
+  /**
+   * Replace all learned data (unlike hydrate, this *removes* entries no longer
+   * present). Used when the user edits their learned corrections in the options
+   * page and the live engine must reflect deletions immediately.
+   */
+  replace(data: Partial<UserLearningData>): void {
+    this.data.acceptedCorrections = { ...data.acceptedCorrections };
+    this.data.rejectedCorrections = { ...data.rejectedCorrections };
+    this.data.acceptedWords = { ...data.acceptedWords };
+  }
+
   snapshot(): UserLearningData {
     return {
       acceptedCorrections: { ...this.data.acceptedCorrections },

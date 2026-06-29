@@ -5,7 +5,9 @@ export interface UserModelStorage {
   set(items: Record<string, unknown>): Promise<void>;
 }
 
-const CACHE_KEY = "userLearning";
+/** chrome.storage.local key holding the persisted UserLearningData. */
+export const USER_LEARNING_KEY = "userLearning";
+const CACHE_KEY = USER_LEARNING_KEY;
 
 /** Persists the user's learned correction preferences in chrome.storage.local. */
 export class ExtensionUserModelStore {

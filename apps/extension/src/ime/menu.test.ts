@@ -6,16 +6,16 @@ import {
 } from "./menu.js";
 
 describe("buildImeMenuItems", () => {
-  it("shows an autocorrect toggle reflecting the current state", () => {
-    expect(buildImeMenuItems({ autocorrectEnabled: true })).toEqual([
-      {
-        id: IME_MENU_ITEM_IDS.toggleAutocorrect,
-        label: "Autocorrect",
-        style: "check",
-        checked: true,
-        enabled: true,
-      },
-    ]);
+  it("shows an autocorrect toggle reflecting the current state, plus a manage entry", () => {
+    const items = buildImeMenuItems({ autocorrectEnabled: true });
+    expect(items[0]).toEqual({
+      id: IME_MENU_ITEM_IDS.toggleAutocorrect,
+      label: "Autocorrect",
+      style: "check",
+      checked: true,
+      enabled: true,
+    });
+    expect(items.map((item) => item.id)).toContain(IME_MENU_ITEM_IDS.manageCorrections);
   });
 });
 

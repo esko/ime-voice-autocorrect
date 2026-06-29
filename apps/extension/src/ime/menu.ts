@@ -4,6 +4,7 @@ export interface ImeMenuState {
 
 export const IME_MENU_ITEM_IDS = {
   toggleAutocorrect: "toggle-autocorrect",
+  manageCorrections: "manage-corrections",
 } as const;
 
 export type ImeMenuItemId = (typeof IME_MENU_ITEM_IDS)[keyof typeof IME_MENU_ITEM_IDS];
@@ -23,6 +24,12 @@ export function buildImeMenuItems(state: ImeMenuState): ImeMenuItem[] {
       label: "Autocorrect",
       style: "check",
       checked: state.autocorrectEnabled,
+      enabled: true,
+    },
+    {
+      id: IME_MENU_ITEM_IDS.manageCorrections,
+      label: "Manage learned corrections…",
+      style: "none",
       enabled: true,
     },
   ];

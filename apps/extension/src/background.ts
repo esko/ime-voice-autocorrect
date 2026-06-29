@@ -1,6 +1,7 @@
 import { createChromeImeAdapter } from "./ime/chromeImeAdapter.js";
 import { createChromeImeUiAdapter } from "./ime/chromeImeUiAdapter.js";
 import { createInputAssistApp } from "./ime/inputAssistApp.js";
+import { IME_MENU_ITEM_IDS } from "./ime/menu.js";
 import type { ExtensionSettingsCache } from "./storage/settingsCache.js";
 import type { ExtensionImePreferences } from "./storage/imePreferences.js";
 
@@ -51,6 +52,10 @@ export function registerInputAssist(
   });
 
   chromeApi.input.ime.onMenuItemActivated.addListener((engineId, menuItemId) => {
+    if (menuItemId === IME_MENU_ITEM_IDS.manageCorrections) {
+      chromeApi.runtime.openOptionsPage?.();
+      return;
+    }
     app.menuController?.handleItemActivated(menuItemId, engineId);
     app.syncMenuStatus();
   });
