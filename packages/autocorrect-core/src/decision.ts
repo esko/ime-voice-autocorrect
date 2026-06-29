@@ -4,6 +4,7 @@ import type { Validator } from "./validator.js";
 import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
 import type { HardCorrections } from "./hardCorrections.js";
+import type { RepRules } from "./repRules.js";
 import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase } from "./caseRestore.js";
@@ -64,6 +65,8 @@ export interface DecideOptions {
   confusion?: ConfusionSets;
   /** Curated common-misspelling map applied with high confidence. */
   hardCorrections?: HardCorrections;
+  /** Hunspell REP rules mined as an extra (phonetic/spelling) candidate source. */
+  repRules?: RepRules;
 }
 
 /** Minimum context advantage for a confused alternative to be offered. */
@@ -195,23 +198,35 @@ export function decideCorrection(
       totalScore: scoreFor(candidate),
     }));
 
-  // Coverage fallback: when SymSpell + the frequency list find nothing, ask the
-  // validator (Hunspell) for suggestions from its larger vocabulary and score
-  // them the same way, so the keyboard/context ranking still applies.
-  if (ranked.length === 0 && options.validator?.suggest) {
+  // Coverage fallback: when SymSpell + the frequency list find nothing, widen the
+  // net with two extra sources scored the same way (so keyboard/context ranking
+  // still applies) — the validator's (Hunspell) own suggestions, and candidates
+  // from the mined REP rules for phonetic/spelling slips SymSpell cannot reach.
+  if (ranked.length === 0) {
     const seen = new Set<string>();
-    for (const suggestion of options.validator.suggest(normalized).slice(0, 5)) {
-      const term = suggestion.toLowerCase();
+    const consider = (raw: string): void => {
+      const term = raw.toLowerCase();
       if (term === normalized || seen.has(term)) {
-        continue;
+        return;
+      }
+      // The candidate must be a real word; REP output in particular is unchecked.
+      if (!(options.validator?.isValid(term) ?? index.hasExact(term))) {
+        return;
       }
       const distance = damerauLevenshtein(normalized, term);
       if (distance === 0 || distance > FALLBACK_MAX_EDIT) {
-        continue;
+        return;
       }
       seen.add(term);
       const candidate = { term, editDistance: distance, frequency: index.frequencyOf(term) };
       ranked.push({ ...candidate, totalScore: scoreFor(candidate) });
+    };
+
+    for (const suggestion of options.validator?.suggest?.(normalized).slice(0, 5) ?? []) {
+      consider(suggestion);
+    }
+    for (const candidate of options.repRules?.candidates(normalized) ?? []) {
+      consider(candidate);
     }
   }
 

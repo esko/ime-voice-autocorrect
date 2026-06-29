@@ -18,6 +18,7 @@ import {
   createNgramContext,
   createCommonConfusionSets,
   createCommonHardCorrections,
+  createRepRulesFromAff,
   UserModel,
 } from "../../../packages/autocorrect-core/dist/index.js";
 
@@ -51,6 +52,7 @@ const engine = createAutocorrectEngine({
   context,
   confusion: createCommonConfusionSets(),
   hardCorrections: createCommonHardCorrections(),
+  repRules: createRepRulesFromAff(read("public/dictionary/en.aff")),
   userModel: UserModel.empty(),
 });
 
@@ -62,6 +64,8 @@ const cases = [
   [[], "langauge", "language (needs real dict)"],
   [["i", "went"], "hpme", "home (dict + context)"],
   [[], "wprf", "word (two neighbour keys)"],
+  [[], "telefone", "telephone (REP f->ph; SymSpell misses it)"],
+  [[], "fotographer", "photographer (REP f->ph)"],
   [[], "wprd", "word/work — ambiguous (short)"],
   [[], "woord", "word/wood — ambiguous (short)"],
   [[], "the", "none — valid word"],

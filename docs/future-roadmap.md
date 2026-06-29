@@ -77,8 +77,13 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    - ✅ Hunspell `suggest()` fallback when SymSpell + the frequency list find
      nothing (`Validator.suggest`, gated to edit distance ≤ 3, scored the same
      way so keyboard/context ranking still applies).
-   - Mine the `.aff` `REP`/`MAP`/`PHONE`/`KEY` rules for extra signals
-     (common replacements, similar characters, phonetic, keyboard hints).
+   - ✅ Mine the `.aff` `REP` rules (`createRepRulesFromAff`): the dictionary's
+     curated phonetic/spelling replacements (`f`↔`ph`, `gh`↔`f`, `tion`↔`sion`,
+     anchored `^`/`$` rules) become an extra candidate source in the same
+     empty-pool fallback as Hunspell `suggest()`, so slips SymSpell's keyboard
+     model cannot reach (`telefone→telephone`, `fotographer→photographer`) get
+     corrected — still filtered to real words and gated by the same confidence
+     margins. Remaining `MAP`/`PHONE`/`KEY` rules are a later signal source.
    - ✅ A curated hard-typo map (`createCommonHardCorrections`): ~80 common
      misspellings corrected with high confidence, respecting user rejections and
      unsafe fields.

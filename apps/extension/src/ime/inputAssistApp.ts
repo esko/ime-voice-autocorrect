@@ -1,4 +1,4 @@
-import type { UserModel, Validator, ContextModel, Dictionary } from "@input-assist/autocorrect-core";
+import type { UserModel, Validator, ContextModel, Dictionary, RepRules } from "@input-assist/autocorrect-core";
 import { AutocorrectImeAdapter } from "../autocorrect/adapter.js";
 import { InputStateManager } from "../ime/inputStateManager.js";
 import type { ExtensionSettingsCache } from "../storage/settingsCache.js";
@@ -119,6 +119,9 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
     },
     setContext(context: ContextModel) {
       autocorrect.setContext(context);
+    },
+    setRepRules(repRules: RepRules) {
+      autocorrect.setRepRules(repRules);
     },
     setDictionary(dictionary: Dictionary) {
       autocorrect.setDictionary(dictionary);

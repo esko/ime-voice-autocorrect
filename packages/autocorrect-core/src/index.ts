@@ -13,6 +13,8 @@ export { createConfusionSets, createCommonConfusionSets } from "./confusion.js";
 export type { ConfusionSets } from "./confusion.js";
 export { createHardCorrections, createCommonHardCorrections } from "./hardCorrections.js";
 export type { HardCorrections } from "./hardCorrections.js";
+export { parseRepRules, createRepRules, createRepRulesFromAff } from "./repRules.js";
+export type { RepRules } from "./repRules.js";
 export type { DecideContext } from "./autocorrectEngine.js";
 export { createCoreEnglishDictionary } from "./coreEnglishDictionary.js";
 export { createTestDictionary } from "./dictionary.js";

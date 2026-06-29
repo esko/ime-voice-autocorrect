@@ -12,6 +12,7 @@ import {
   type Dictionary,
   type HardCorrections,
   type RankedCandidate,
+  type RepRules,
   type UserModel,
   type Validator,
 } from "@input-assist/autocorrect-core";
@@ -36,6 +37,7 @@ export interface AutocorrectImeAdapterOptions {
   context?: ContextModel;
   confusion?: ConfusionSets;
   hardCorrections?: HardCorrections;
+  repRules?: RepRules;
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
@@ -55,6 +57,7 @@ export class AutocorrectImeAdapter {
   private context: ContextModel;
   private readonly confusion: ConfusionSets;
   private readonly hardCorrections: HardCorrections;
+  private repRules?: RepRules;
   private personalDictionary: readonly string[];
   private ignoreList: readonly string[];
   private enabled: boolean;
@@ -72,6 +75,7 @@ export class AutocorrectImeAdapter {
     this.context = options.context ?? createCommonContext();
     this.confusion = options.confusion ?? createCommonConfusionSets();
     this.hardCorrections = options.hardCorrections ?? createCommonHardCorrections();
+    this.repRules = options.repRules;
     this.personalDictionary = options.personalDictionary ?? [];
     this.ignoreList = options.ignoreList ?? [];
     this.enabled = options.enabled ?? true;
@@ -91,6 +95,7 @@ export class AutocorrectImeAdapter {
       context: this.context,
       confusion: this.confusion,
       hardCorrections: this.hardCorrections,
+      repRules: this.repRules,
     });
   }
 
@@ -105,6 +110,12 @@ export class AutocorrectImeAdapter {
   /** Upgrade the spell validator (e.g. once the Hunspell dictionary loads). */
   setValidator(validator: Validator): void {
     this.validator = validator;
+    this.engine = this.buildEngine();
+  }
+
+  /** Add the mined Hunspell REP rules as an extra candidate source. */
+  setRepRules(repRules: RepRules): void {
+    this.repRules = repRules;
     this.engine = this.buildEngine();
   }
 

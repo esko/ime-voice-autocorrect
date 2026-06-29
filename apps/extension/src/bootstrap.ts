@@ -41,7 +41,10 @@ export function bootstrapExtension(chromeApi: typeof chrome): void {
   // built-in dictionary handles the most common typos until then.
   const url = (path: string) => chromeApi.runtime.getURL(path);
   void loadEnglishValidator(url)
-    .then((validator) => app.setValidator(validator))
+    .then(({ validator, repRules }) => {
+      app.setValidator(validator);
+      app.setRepRules(repRules);
+    })
     .catch(() => {});
   void loadEnglishContext(url)
     .then((context) => app.setContext(context))
