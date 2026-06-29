@@ -10,13 +10,14 @@ describe("InputStateManager", () => {
 
   const createContext = (
     contextID: number,
-    type: chrome.input.ime.InputContextType = "text"
+    type: chrome.input.ime.InputContextType = "text",
+    autoCorrect = true,
   ): chrome.input.ime.InputContext => ({
     contextID,
     type,
     spellCheck: false,
     shouldDoLearning: false,
-    autoCorrect: false,
+    autoCorrect,
     autoComplete: false,
   });
 
@@ -94,6 +95,16 @@ describe("InputStateManager", () => {
     expect(manager.canAutocorrect()).toBe(false);
 
     manager.onFocus(createContext(2, "email"));
+    expect(manager.canAutocorrect()).toBe(false);
+  });
+
+  it("a normal text field allows autocorrect", () => {
+    manager.onFocus(createContext(1, "text"));
+    expect(manager.canAutocorrect()).toBe(true);
+  });
+
+  it("respects a field that opts out via autoCorrect=false (e.g. a terminal)", () => {
+    manager.onFocus(createContext(1, "text", false));
     expect(manager.canAutocorrect()).toBe(false);
   });
 

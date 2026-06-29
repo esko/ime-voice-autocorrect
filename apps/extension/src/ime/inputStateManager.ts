@@ -96,7 +96,17 @@ export class InputStateManager {
       return false;
     }
     const type = this.activeContext.type;
-    return type !== "password" && type !== "url" && type !== "email" && type !== "number";
+    if (type === "password" || type === "url" || type === "email" || type === "number") {
+      return false;
+    }
+    // Respect the field's own preference. Terminals (e.g. the ChromeOS Terminal
+    // app) and code editors set autoCorrect=false; they also tend not to support
+    // deleteSurroundingText, so correcting there leaves the original word in place
+    // and appends the replacement — duplicating text. Never correct such fields.
+    if (this.activeContext.autoCorrect === false) {
+      return false;
+    }
+    return true;
   }
 
   getPreviousToken(): TokenSnapshot | null {
