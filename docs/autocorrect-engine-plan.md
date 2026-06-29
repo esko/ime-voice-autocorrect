@@ -21,7 +21,7 @@ ChromeOS IME extension  (apps/extension)        thin chrome.input.ime wrapper
         ↓                                        captures text, calls engine,
 local autocorrect engine (packages/autocorrect-core)   commits / suggests
         ↓
-SymSpell candidate generator   →  (future) Hunspell/nspell validator
+SymSpell + weighted/phonetic candidates → Hunspell/nspell validator
         ↓
 confidence / ranking layer
         ↓

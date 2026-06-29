@@ -18,8 +18,9 @@ pnpm build
 - [ ] `chrome://extensions` shows no error on the card ("Service worker
       (inactive)" is normal).
 - [ ] ChromeOS input settings list a single **Input Assist** input method.
-- [ ] Selecting it shows the IME menu (tray) with an **Autocorrect** toggle and
-      no "engine is not active" error in the service-worker console.
+- [ ] Selecting it shows the IME menu (tray) with **Autocorrect**, **Correct in
+      terminals & code fields**, and **Manage learned corrections…**, with no
+      "engine is not active" error in the service-worker console.
 
 ## 1. Data loads (the engine upgrades a few seconds after first use)
 
@@ -52,6 +53,9 @@ inspect) and the Network tab.
 - [ ] type `becuase ` → `because `
 - [ ] type `wich ` → `which `
 - [ ] type `langauge ` → `language ` (this one needs the freq dict loaded — §1)
+- [ ] type `nite ` → `night ` (curated phonetic spelling)
+- [ ] Motor-slip reach: `jwtboard `, `ekbyaord `, `kkeeyyboard ` → `keyboard `;
+      `bokeper ` → `bookkeeper ` (these need the freq dict loaded — §1).
 - [ ] Capitalisation is preserved: `Teh ` → `The `, `TEH ` → `THE `.
 - [ ] Accidental-shift typos still correct: `tEh ` → `the `, `TEH ` → `THE `
       (these used to be ignored as "code"). Real code is still left alone (§8).
@@ -72,6 +76,9 @@ inspect) and the Network tab.
       correctly-spelled word is the worst failure, so it is suggest-only.)
 - [ ] type a plain correct sentence with `form`, `their`, `were` where they are
       correct → no candidate window appears.
+- [ ] type `school principle `, `know weather `, `walked passed `, `right hear `,
+      and `at piece ` → the context-appropriate alternative is offered, never
+      silently applied.
 
 ## 6. Suggestions / candidate window
 
@@ -94,6 +101,9 @@ inspect) and the Network tab.
       persisted to storage).
 - [ ] Add a word via accepting a suggestion, then type it again → it is treated
       as known and not corrected.
+- [ ] Open **Manage learned corrections…** from the IME menu. Re-enable the
+      rejected `teh → the` pair → the next `teh ` auto-corrects again without
+      reloading the extension.
 
 ## 8. Safety — must NOT correct
 
@@ -112,7 +122,17 @@ inspect) and the Network tab.
 - [ ] Turn it back on → corrections resume.
 - [ ] Reload the extension → the toggle state is remembered.
 
-## 10. Known soft spots (expected, not bugs)
+## 10. Terminal / opted-out fields
+
+- [ ] With **Correct in terminals & code fields** off (default), type `teh ` in
+      ChromeOS Terminal → it stays unchanged and never duplicates text.
+- [ ] Turn the setting on and type `teh ` in Terminal → synthetic Backspaces
+      remove the original token and commit `the ` exactly once.
+- [ ] Reload the extension → the terminal/code-field toggle state is remembered.
+- [ ] Turn the setting off again after testing; shell commands and paths should
+      not normally be autocorrected.
+
+## 11. Known soft spots (expected, not bugs)
 
 - [ ] Short ambiguous typos may do nothing rather than guess: `wprd ` (word vs
       work) and `woord ` (word vs wood) are expected to be left alone for now.

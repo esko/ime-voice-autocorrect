@@ -15,7 +15,7 @@ only off the critical path (hotkey / sentence end / selected text).
 | 1 | SymSpell candidate generation + nspell/Hunspell validation | ✅ done |
 | 2 | Keyboard-aware error model | ✅ `keyboardTypoScore` plus `weightedKeyboardDistance`; the generator performs bounded on-demand keyboard expansion so long raw-distance-3 typos with weighted cost ≤1.2 are reachable without enlarging the persistent index |
 | 3 | N-gram language-model reranking | ✅ trigram→bigram backoff reranker; full ~242k-pair English bigram corpus bundled and loaded at start (`loadEnglishContext`) |
-| 4 | Confusion-set / real-word correction | ◑ context-gated, suggest-only-until-learned (`createCommonConfusionSets`); curated seed set, needs a larger n-gram corpus to bite |
+| 4 | Confusion-set / real-word correction | ✅ context-gated and always suggestion-only (`createCommonConfusionSets`), backed by the bundled full bigram corpus |
 | 5 | Personal learning model | ✅ done (accept/reject pairs, accepted words, persisted) |
 | 6 | Small neural correction model | ✗ future, opt-in only |
 | 7 | Finnish morphology (Voikko) | ✗ future, separate track |
@@ -64,13 +64,14 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    `node scripts/build-ngrams.mjs path/to/that-file`. Next: right-context (next
    word) when surrounding text provides it, or a KenLM-style WASM model.
 
-2. **Confusion-set real-word correction (Level 4).** ◑ In: a curated confusion
+2. **Confusion-set real-word correction (Level 4).** ✅ A curated confusion
    table (`createCommonConfusionSets`) is consulted only when the original is a
-   real word. A swap is **suggest-only** unless context clearly favours it *and*
-   the user has accepted that exact swap before, in which case it auto-applies
-   (ties into Level 5). The remaining work is **data**: the seed n-gram tables
-   are too small for the context gate to fire on most real sentences — grow the
-   corpus (item 1) and expand the confusion set.
+   real word. A context-supported swap is **always suggestion-only**, even when
+   previously accepted, because silently replacing a valid word is the worst
+   failure class. The bundled full bigram corpus drives the context gate; the
+   set now includes common grammar pairs and homophones such as
+   principal/principle, weather/whether, passed/past, hear/here, and peace/piece.
+   Further additions are ordinary data tuning, not a missing engine capability.
 
 3. **Extra candidate sources.** Union into the same ranker, then let the
    confidence layer decide:
