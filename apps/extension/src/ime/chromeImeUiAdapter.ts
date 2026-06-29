@@ -20,17 +20,18 @@ export interface ChromeImeUiAdapter {
 }
 
 export function createChromeImeUiAdapter(chromeApi: typeof chrome): ChromeImeUiAdapter {
-  // These window operations target a context/engine that can go inactive between
-  // the time we decide to paint and the time the call runs (focus moves, the
-  // field blurs). ChromeOS then reports "Context is not active"; reading
-  // runtime.lastError in the callback marks it handled so it never surfaces as an
-  // uncaught promise rejection. The try/catch covers synchronous throws too.
-  const swallow = (): void => {
-    void chromeApi.runtime?.lastError;
-  };
-  const guard = (operation: () => void): void => {
+  // These window/menu operations target a context or engine that can be inactive
+  // by the time the call runs (focus moves, the field blurs, or the MV3 service
+  // worker restarted). ChromeOS then reports "Context is not active" / "The
+  // engine is not active". In MV3 these APIs return a Promise that *rejects*, so
+  // we capture it and swallow the rejection (and try/catch any synchronous
+  // throw); otherwise it surfaces as an uncaught-in-promise error.
+  const guard = (operation: () => unknown): void => {
     try {
-      operation();
+      const result = operation();
+      if (result && typeof (result as PromiseLike<unknown>).then === "function") {
+        (result as PromiseLike<unknown>).then(undefined, () => {});
+      }
     } catch {
       /* context/engine went away between scheduling and running */
     }
@@ -38,41 +39,32 @@ export function createChromeImeUiAdapter(chromeApi: typeof chrome): ChromeImeUiA
 
   return {
     setMenuItems(engineId, items) {
-      guard(() => chromeApi.input.ime.setMenuItems({ engineID: engineId, items }, swallow));
+      guard(() => chromeApi.input.ime.setMenuItems({ engineID: engineId, items }));
     },
     setAssistiveWindowProperties(contextId, properties) {
       guard(() =>
-        chromeApi.input.ime.setAssistiveWindowProperties(
-          { contextID: contextId, properties },
-          swallow,
-        ),
+        chromeApi.input.ime.setAssistiveWindowProperties({ contextID: contextId, properties }),
       );
     },
     setCandidates(contextId, candidates) {
       guard(() =>
-        chromeApi.input.ime.setCandidates(
-          {
-            contextID: contextId,
-            candidates: candidates.map((candidate) => ({
-              candidate: candidate.candidate,
-              id: candidate.id,
-              label: candidate.label,
-              annotation: candidate.annotation,
-            })),
-          },
-          swallow,
-        ),
+        chromeApi.input.ime.setCandidates({
+          contextID: contextId,
+          candidates: candidates.map((candidate) => ({
+            candidate: candidate.candidate,
+            id: candidate.id,
+            label: candidate.label,
+            annotation: candidate.annotation,
+          })),
+        }),
       );
     },
     setCandidateWindowVisible(engineId, visible) {
       guard(() =>
-        chromeApi.input.ime.setCandidateWindowProperties(
-          {
-            engineID: engineId,
-            properties: { visible, cursorVisible: false, vertical: true, pageSize: 5 },
-          },
-          swallow,
-        ),
+        chromeApi.input.ime.setCandidateWindowProperties({
+          engineID: engineId,
+          properties: { visible, cursorVisible: false, vertical: true, pageSize: 5 },
+        }),
       );
     },
   };

@@ -89,6 +89,14 @@ export function registerInputAssist(
     }
     const key = keyData.key ?? "";
     app.stateManager.onKeyEvent({ key, type: "keydown" });
+
+    // The MV3 service worker can restart while the IME stays selected, in which
+    // case onActivate does not re-fire and the in-memory engine id (and its menu)
+    // is lost. The keystroke always carries the engine id, so recover it here.
+    if (engineId && app.getActiveEngineId() === null) {
+      app.onActivate(engineId);
+    }
+
     const contextId = app.stateManager.getActiveContextId();
 
     if (key === "Backspace") {
