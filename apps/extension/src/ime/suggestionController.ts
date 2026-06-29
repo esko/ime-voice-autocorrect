@@ -90,4 +90,9 @@ export class SuggestionController {
   hasPending(): boolean {
     return this.pending !== null;
   }
+
+  /** Number of candidates currently offered (0 when nothing is pending). */
+  pendingCount(): number {
+    return this.pending?.candidates.length ?? 0;
+  }
 }

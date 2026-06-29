@@ -33,6 +33,15 @@ describe("SuggestionController", () => {
     expect(ui.setCandidates).not.toHaveBeenCalled();
   });
 
+  it("reports the candidate count (for number-key selection bounds)", () => {
+    const { controller } = setup();
+    expect(controller.pendingCount()).toBe(0);
+    controller.offer("input-assist-us", 1, "teh", " ", [{ term: "the" }, { term: "ten" }]);
+    expect(controller.pendingCount()).toBe(2);
+    controller.dismiss();
+    expect(controller.pendingCount()).toBe(0);
+  });
+
   it("replaces the token (plus delimiter) with the chosen candidate", async () => {
     const { ui, text, controller } = setup();
     controller.offer("input-assist-us", 1, "teh", " ", [{ term: "the" }, { term: "ten" }]);

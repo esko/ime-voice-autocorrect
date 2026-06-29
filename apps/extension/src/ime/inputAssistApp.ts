@@ -73,21 +73,30 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
   const autocorrect = new AutocorrectImeAdapter(imeTextAdapter, {
     userModel: options.userModel,
     onCorrectionApplied: (contextId, original, corrected) => {
-      suggestions?.dismiss();
       pendingCorrection = { original, replacement: corrected };
-      stateManager.noteReplacement(original, corrected);
       void assistiveUndo?.showCorrection(contextId, original, corrected);
     },
     onCorrectionUndone: () => {
       stateManager.clearCorrectionUndo();
       assistiveUndo?.hide();
     },
-    onSuggest: suggestions
-      ? (contextId, original, delimiter, candidates) => {
-          suggestions.offer(activeEngineId ?? "", contextId, original, delimiter, candidates);
-        }
-      : undefined,
   });
+
+  // Commit + learning for a chosen suggestion, shared by mouse clicks and
+  // number-key selection.
+  const applySuggestion = async (candidateId: number): Promise<void> => {
+    const applied = await suggestions?.select(candidateId);
+    if (!applied) {
+      return;
+    }
+    options.userModel?.recordAccepted(applied.original, applied.replacement);
+    options.persistLearning?.();
+    stateManager.noteReplacement(applied.original, applied.replacement);
+    const contextId = stateManager.getActiveContextId();
+    if (contextId !== null) {
+      void assistiveUndo?.showCorrection(contextId, applied.original, applied.replacement);
+    }
+  };
 
   if (options.imeUi) {
     menuController = new ImeMenuController(
@@ -169,20 +178,30 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       pendingCorrection = null;
       options.persistLearning?.();
     },
-    async onCandidateClicked(candidateId: number) {
-      const applied = await suggestions?.select(candidateId);
-      if (!applied) {
-        return;
-      }
-      options.userModel?.recordAccepted(applied.original, applied.replacement);
-      options.persistLearning?.();
-      stateManager.noteReplacement(applied.original, applied.replacement);
-      const contextId = stateManager.getActiveContextId();
-      if (contextId !== null) {
-        void assistiveUndo?.showCorrection(contextId, applied.original, applied.replacement);
-      }
+    onCandidateClicked(candidateId: number) {
+      return applySuggestion(candidateId);
     },
-    async onCharacterTyped(contextId: number, character: string) {
+    /** True while a suggestion (candidate) window is open. */
+    hasPendingSuggestion(): boolean {
+      return suggestions?.hasPending() ?? false;
+    },
+    /** Pick the suggestion at `index` via a number key; returns whether it was consumed. */
+    selectSuggestionByNumber(index: number): boolean {
+      const count = suggestions?.pendingCount() ?? 0;
+      if (index < 0 || index >= count) {
+        return false;
+      }
+      void applySuggestion(index);
+      return true;
+    },
+    /**
+     * Handle a typed character at a (possible) word boundary. Returns whether the
+     * key was consumed: an auto-replacement consumes the boundary key and
+     * re-emits the delimiter itself (so the space is never swallowed); everything
+     * else passes through. The replacement/commit runs asynchronously but the
+     * decision and undo bookkeeping are synchronous.
+     */
+    handleCharacter(contextId: number, character: string): boolean {
       assistiveUndo?.hide();
       suggestions?.dismiss();
       // Typing past a correction without undoing it counts as acceptance.
@@ -190,9 +209,23 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       const prior = stateManager.getPreviousToken()?.text ?? "";
       const previousWords = stateManager.getPreviousWords();
       stateManager.noteCommittedText(character);
-      if (stateManager.canAutocorrect()) {
-        await autocorrect.onCharacterTyped(contextId, prior, character, previousWords);
+      if (!stateManager.canAutocorrect()) {
+        return false;
       }
+      const evaluation = autocorrect.evaluate(prior, character, previousWords);
+      if (!evaluation) {
+        return false;
+      }
+      const { token, decision } = evaluation;
+      if (decision.action === "replace") {
+        stateManager.noteReplacement(token, decision.replacement);
+        void autocorrect.commitReplacement(contextId, token, decision.replacement, character);
+        return true;
+      }
+      if (decision.action === "suggest") {
+        suggestions?.offer(activeEngineId ?? "", contextId, token, character, decision.candidates);
+      }
+      return false;
     },
   };
 }

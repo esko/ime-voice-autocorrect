@@ -12,12 +12,16 @@ const noopAdapter = {
 
 const textContext = { contextID: 1, type: "text" } as chrome.input.ime.InputContext;
 
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 async function type(
-  app: { onCharacterTyped: (contextId: number, character: string) => Promise<void> },
+  app: { handleCharacter: (contextId: number, character: string) => boolean },
   text: string,
 ) {
   for (const character of text) {
-    await app.onCharacterTyped(1, character);
+    app.handleCharacter(1, character);
+    // The commit/learning side-effects run asynchronously after the sync return.
+    await flush();
   }
 }
 
@@ -52,9 +56,7 @@ describe("createInputAssistApp", () => {
 
     await app.hydrateSettingsFromCache();
     app.onFocus("input-assist-us", { contextID: 1, type: "text" } as chrome.input.ime.InputContext);
-    for (const key of ["t", "e", "h", " "]) {
-      await app.onCharacterTyped(1, key);
-    }
+    await type(app, "teh ");
 
     // "teh" is in the personal dictionary, so it is never corrected.
     expect(commits).toEqual([]);
@@ -109,7 +111,7 @@ describe("createInputAssistApp", () => {
     app.onFocus("input-assist-us", textContext);
 
     await type(app, "teh ");
-    expect(commits).toContain("the");
+    expect(commits).toContain("the ");
 
     // User backspaces over the correction.
     app.recordRejection("teh", "the");
@@ -119,7 +121,7 @@ describe("createInputAssistApp", () => {
     // Same typo again is no longer auto-applied.
     commits.length = 0;
     await type(app, "teh ");
-    expect(commits).not.toContain("the");
+    expect(commits).not.toContain("the ");
   });
 
   it("records acceptance when the user types past a correction", async () => {
@@ -150,9 +152,7 @@ describe("createInputAssistApp", () => {
       contextID: 1,
       type: "password",
     } as chrome.input.ime.InputContext);
-    for (const key of ["t", "e", "h", " "]) {
-      await app.onCharacterTyped(1, key);
-    }
+    await type(app, "teh ");
 
     expect(commits).toEqual([]);
   });

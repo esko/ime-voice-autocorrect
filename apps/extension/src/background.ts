@@ -80,17 +80,18 @@ export function registerInputAssist(
   // This listener MUST be synchronous and return a real boolean. An async
   // listener returns a (truthy) Promise, which ChromeOS treats as "key handled"
   // and swallows EVERY keystroke. Return true only for keys we consume (a
-  // backspace that triggers an autocorrect undo); the autocorrect commit work is
-  // fired without awaiting so the return stays synchronous.
+  // backspace that triggers an undo, a number that picks a suggestion, or a
+  // boundary key that triggers an auto-replacement); commit work is fired
+  // without awaiting so the return stays synchronous.
   chromeApi.input.ime.onKeyEvent.addListener((engineId, keyData) => {
     if (keyData.type !== "keydown") {
       return false;
     }
     const key = keyData.key ?? "";
     app.stateManager.onKeyEvent({ key, type: "keydown" });
+    const contextId = app.stateManager.getActiveContextId();
 
     if (key === "Backspace") {
-      const contextId = app.stateManager.getActiveContextId();
       if (contextId !== null) {
         const undo = app.stateManager.consumeCorrectionUndo();
         if (undo) {
@@ -105,15 +106,36 @@ export function registerInputAssist(
       return false;
     }
 
-    if (key.length === 1) {
-      const contextId = app.stateManager.getActiveContextId();
-      if (contextId !== null) {
-        void app.onCharacterTyped(contextId, key);
+    // While the candidate window is open, number keys pick a suggestion.
+    if (contextId !== null && app.hasPendingSuggestion() && /^[1-9]$/.test(key)) {
+      if (app.selectSuggestionByNumber(Number(key) - 1)) {
+        return true;
       }
+    }
+
+    if (key.length === 1 && contextId !== null) {
+      return app.handleCharacter(contextId, resolveTypedCharacter(key, keyData));
     }
 
     return false;
   });
 
   return app;
+}
+
+/**
+ * Some ChromeOS configurations deliver letter keys lowercase with a separate
+ * `shiftKey`/`capsLock` flag rather than the resolved character, which lost the
+ * user's capitalisation ("Teh" was corrected to "the"). Re-apply the case from
+ * the modifiers, but only ever upper-case a lowercase letter — never the reverse
+ * — so devices that already send the correct case are unaffected.
+ */
+function resolveTypedCharacter(key: string, keyData: chrome.input.ime.KeyboardEvent): string {
+  if (key.length === 1 && key >= "a" && key <= "z") {
+    const upper = Boolean(keyData.shiftKey) !== Boolean(keyData.capsLock);
+    if (upper) {
+      return key.toUpperCase();
+    }
+  }
+  return key;
 }

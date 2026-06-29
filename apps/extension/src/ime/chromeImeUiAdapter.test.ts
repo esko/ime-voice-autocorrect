@@ -18,14 +18,22 @@ describe("createChromeImeUiAdapter", () => {
     ui.setMenuItems("input-assist-us", [{ id: "toggle-autocorrect", label: "Autocorrect" }]);
     ui.setAssistiveWindowProperties(1, { type: "undo", visible: true });
 
-    expect(setMenuItems).toHaveBeenCalledWith({
-      engineID: "input-assist-us",
-      items: [{ id: "toggle-autocorrect", label: "Autocorrect" }],
-    });
-    expect(setAssistiveWindowProperties).toHaveBeenCalledWith({
-      contextID: 1,
-      properties: { type: "undo", visible: true },
-    });
+    // A callback is passed so chrome.runtime.lastError ("Context is not active")
+    // is read and never surfaces as an uncaught rejection.
+    expect(setMenuItems).toHaveBeenCalledWith(
+      {
+        engineID: "input-assist-us",
+        items: [{ id: "toggle-autocorrect", label: "Autocorrect" }],
+      },
+      expect.any(Function),
+    );
+    expect(setAssistiveWindowProperties).toHaveBeenCalledWith(
+      {
+        contextID: 1,
+        properties: { type: "undo", visible: true },
+      },
+      expect.any(Function),
+    );
   });
 });
 

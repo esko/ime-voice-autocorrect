@@ -88,7 +88,7 @@ describe("bootstrapExtension IME wiring", () => {
     // With the broken null-context adapter these are never reached.
     expect(deleteSurroundingText).toHaveBeenCalled();
     expect(commitText).toHaveBeenCalledWith(
-      { contextID: 1, text: "the" },
+      { contextID: 1, text: "the " },
       expect.any(Function),
     );
   });

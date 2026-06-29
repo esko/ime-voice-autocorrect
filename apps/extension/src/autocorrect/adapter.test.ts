@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AutocorrectImeAdapter } from "./adapter.js";
 
 describe("AutocorrectImeAdapter", () => {
-  it("replaces teh with the at a word boundary", async () => {
+  it("evaluates teh -> the and commits the replacement plus the delimiter", async () => {
     const deletes: number[] = [];
     const commits: string[] = [];
     const adapter = new AutocorrectImeAdapter({
@@ -14,10 +14,16 @@ describe("AutocorrectImeAdapter", () => {
       },
     });
 
-    await adapter.onCharacterTyped(1, "say teh", " ");
+    const evaluation = adapter.evaluate("say teh", " ");
+    expect(evaluation?.token).toBe("teh");
+    expect(evaluation?.decision.action).toBe("replace");
+    if (evaluation?.decision.action === "replace") {
+      await adapter.commitReplacement(1, evaluation.token, evaluation.decision.replacement, " ");
+    }
 
     expect(deletes).toEqual([3]);
-    expect(commits).toEqual(["the"]);
+    // The trailing space is re-emitted with the word so it is never swallowed.
+    expect(commits).toEqual(["the "]);
   });
 
   it("restores the original token on undoCorrection", async () => {
@@ -32,34 +38,26 @@ describe("AutocorrectImeAdapter", () => {
     expect(deletedLength).toBe(3);
   });
 
-  it("skips corrections when disabled", async () => {
-    const commits: string[] = [];
+  it("evaluates to null when disabled", () => {
     const adapter = new AutocorrectImeAdapter(
       {
         deleteSurroundingText: async () => {},
-        commitText: async (_contextId, text) => {
-          commits.push(text);
-        },
+        commitText: async () => {},
       },
       { enabled: false },
     );
 
-    await adapter.onCharacterTyped(1, "teh", " ");
-    expect(commits).toEqual([]);
+    expect(adapter.evaluate("teh", " ")).toBeNull();
   });
 
-  it("honors personal dictionary entries from settings updates", async () => {
-    const commits: string[] = [];
+  it("honors personal dictionary entries from settings updates", () => {
     const adapter = new AutocorrectImeAdapter({
       deleteSurroundingText: async () => {},
-      commitText: async (_contextId, text) => {
-        commits.push(text);
-      },
+      commitText: async () => {},
     });
 
     adapter.updateWordLists({ personalDictionary: ["teh"] });
-    await adapter.onCharacterTyped(1, "say teh", " ");
-
-    expect(commits).toEqual([]);
+    // "teh" is now a kept word, so it is never corrected.
+    expect(adapter.evaluate("say teh", " ")?.decision.action).toBe("none");
   });
 });

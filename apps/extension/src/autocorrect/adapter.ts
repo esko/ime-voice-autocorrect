@@ -9,9 +9,9 @@ import {
   type AutocorrectEngine,
   type ConfusionSets,
   type ContextModel,
+  type CorrectionDecision,
   type Dictionary,
   type HardCorrections,
-  type RankedCandidate,
   type RepRules,
   type UserModel,
   type Validator,
@@ -41,12 +41,6 @@ export interface AutocorrectImeAdapterOptions {
   enabled?: boolean;
   onCorrectionApplied?: (contextId: number, original: string, corrected: string) => void;
   onCorrectionUndone?: (contextId: number) => void;
-  onSuggest?: (
-    contextId: number,
-    original: string,
-    delimiter: string,
-    candidates: RankedCandidate[],
-  ) => void;
 }
 
 export class AutocorrectImeAdapter {
@@ -63,7 +57,6 @@ export class AutocorrectImeAdapter {
   private enabled: boolean;
   private readonly onCorrectionApplied?: AutocorrectImeAdapterOptions["onCorrectionApplied"];
   private readonly onCorrectionUndone?: AutocorrectImeAdapterOptions["onCorrectionUndone"];
-  private readonly onSuggest?: AutocorrectImeAdapterOptions["onSuggest"];
 
   constructor(
     private readonly textAdapter: ImeTextAdapter,
@@ -81,7 +74,6 @@ export class AutocorrectImeAdapter {
     this.enabled = options.enabled ?? true;
     this.onCorrectionApplied = options.onCorrectionApplied;
     this.onCorrectionUndone = options.onCorrectionUndone;
-    this.onSuggest = options.onSuggest;
     this.engine = this.buildEngine();
   }
 
@@ -140,31 +132,43 @@ export class AutocorrectImeAdapter {
     this.engine = this.buildEngine();
   }
 
-  async onCharacterTyped(
-    contextId: number,
+  /**
+   * Synchronously decide what to do with the token that ends at `character` (a
+   * word boundary). Returns `null` when autocorrect is off, the character is not
+   * a boundary, or there is no token — i.e. nothing to do. The decision is
+   * computed without touching the document so the caller can choose, in the key
+   * handler, whether to consume the boundary key (see `commitReplacement`).
+   */
+  evaluate(
     textBeforeCursor: string,
     character: string,
     previousWords: readonly string[] = [],
-  ): Promise<void> {
+  ): { token: string; decision: CorrectionDecision } | null {
     if (!this.enabled || !isWordBoundary(character)) {
-      return;
+      return null;
     }
-
     const token = extractLastWord(textBeforeCursor);
     if (!token) {
-      return;
+      return null;
     }
+    return { token, decision: this.engine.decide(token, { previousWords }) };
+  }
 
-    const decision = this.engine.decide(token, { previousWords });
-    if (decision.action === "replace") {
-      await this.textAdapter.deleteSurroundingText(contextId, token.length);
-      await this.textAdapter.commitText(contextId, decision.replacement);
-      this.onCorrectionApplied?.(contextId, token, decision.replacement);
-      return;
-    }
-    if (decision.action === "suggest") {
-      this.onSuggest?.(contextId, token, character, decision.candidates);
-    }
+  /**
+   * Apply an auto-replacement. The boundary key is consumed by the caller and
+   * re-emitted here as part of the commit (`replacement + delimiter`) so the
+   * delimiter the user typed is never lost — the previous pass-through approach
+   * raced the platform's own insertion and swallowed the space.
+   */
+  async commitReplacement(
+    contextId: number,
+    token: string,
+    replacement: string,
+    delimiter: string,
+  ): Promise<void> {
+    await this.textAdapter.deleteSurroundingText(contextId, token.length);
+    await this.textAdapter.commitText(contextId, replacement + delimiter);
+    this.onCorrectionApplied?.(contextId, token, replacement);
   }
 
   async undoCorrection(contextId: number, undo: { restore: string; deleteLength: number }): Promise<void> {

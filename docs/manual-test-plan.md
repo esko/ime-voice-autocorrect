@@ -44,7 +44,8 @@ inspect) and the Network tab.
 
 ## 3. Core autocorrect (should auto-replace)
 
-- [ ] type `teh ` → `the `
+- [ ] type `teh ` → `the ` — and the **trailing space is preserved** (no need to
+      press space twice).
 - [ ] type `recieve ` → `receive `
 - [ ] type `seperate ` → `separate `
 - [ ] type `definately ` → `definitely `
@@ -52,6 +53,8 @@ inspect) and the Network tab.
 - [ ] type `wich ` → `which `
 - [ ] type `langauge ` → `language ` (this one needs the freq dict loaded — §1)
 - [ ] Capitalisation is preserved: `Teh ` → `The `, `TEH ` → `THE `.
+- [ ] Accidental-shift typos still correct: `tEh ` → `the `, `TEH ` → `THE `
+      (these used to be ignored as "code"). Real code is still left alone (§8).
 
 ## 4. Context (previous words change the outcome)
 
@@ -64,6 +67,9 @@ inspect) and the Network tab.
 - [ ] type `came form ` → a candidate window offers **from** (it does **not**
       auto-replace, because `form` is a real word).
 - [ ] Pick the suggestion → the text becomes `came from `.
+- [ ] **Even after** accepting `form`→`from` above, a real-word swap is *never*
+      silently auto-applied later — it is always only offered. (Auto-replacing a
+      correctly-spelled word is the worst failure, so it is suggest-only.)
 - [ ] type a plain correct sentence with `form`, `their`, `were` where they are
       correct → no candidate window appears.
 
@@ -71,15 +77,19 @@ inspect) and the Network tab.
 
 - [ ] A medium-confidence typo (e.g. type `becuse `) shows a candidate window
       with options (`because`, …) rather than auto-replacing.
-- [ ] Selecting a candidate replaces the word + keeps the trailing space.
-- [ ] Typing another character (instead of selecting) dismisses the window.
+- [ ] Selecting a candidate **with the mouse** replaces the word + keeps the space.
+- [ ] Selecting a candidate **with a number key** (`1`–`5`) does the same — the
+      digit picks the candidate, it is not typed into the field.
+- [ ] Typing another (non-digit) character instead dismisses the window.
 
 ## 7. Learning (this should adapt to you)
 
 - [ ] type `teh ` → it becomes `the `. Immediately press **Backspace** → it
       reverts to `teh` (undo).
-- [ ] type `teh ` again → it is now **offered** (candidate window), no longer
-      auto-applied. (One rejection demotes that exact correction.)
+- [ ] type `teh ` again → it is now **offered** (candidate window with several
+      options), no longer auto-applied. (One rejection demotes that exact
+      correction — so if `teh` "suddenly only suggests", check whether you undid
+      it earlier; clearing learned data resets it.)
 - [ ] Reload the extension, type `teh ` again → still not auto-applied (learning
       persisted to storage).
 - [ ] Add a word via accepting a suggestion, then type it again → it is treated
