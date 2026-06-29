@@ -1,3 +1,4 @@
+import { restoreCase } from "@input-assist/autocorrect-core";
 import type { CandidateView } from "./chromeImeUiAdapter.js";
 
 export interface SuggestionUiPort {
@@ -41,9 +42,11 @@ export class SuggestionController {
     delimiter: string,
     candidates: readonly { term: string }[],
   ): void {
+    // Candidate terms come back lowercase; apply the original token's case shape
+    // so "TEH" offers (and commits) "THE", not "the".
     const top = candidates
       .slice(0, MAX_CANDIDATES)
-      .map((candidate, index) => ({ id: index, term: candidate.term }));
+      .map((candidate, index) => ({ id: index, term: restoreCase(original, candidate.term) }));
     if (top.length === 0) {
       return;
     }

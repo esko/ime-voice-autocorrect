@@ -26,8 +26,11 @@ export async function loadEnglishContext(
   getUrl: (path: string) => string,
   fetchText: (url: string) => Promise<string> = async (url) => (await fetch(url)).text(),
 ): Promise<ContextModel> {
-  const bigramText = await fetchText(getUrl("ngrams/en-bigrams.txt"));
-  const trigramText = await fetchText(getUrl("ngrams/en-trigrams.txt")).catch(() => "");
+  // Fetch both in parallel; the trigram table is optional (back off to bigrams).
+  const [bigramText, trigramText] = await Promise.all([
+    fetchText(getUrl("ngrams/en-bigrams.txt")),
+    fetchText(getUrl("ngrams/en-trigrams.txt")).catch(() => ""),
+  ]);
   return createNgramContext({
     bigrams: parseNgramTable(bigramText),
     trigrams: parseNgramTable(trigramText),

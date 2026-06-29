@@ -33,6 +33,21 @@ describe("SuggestionController", () => {
     expect(ui.setCandidates).not.toHaveBeenCalled();
   });
 
+  it("restores the original token's case in offered candidates and the commit", async () => {
+    const { ui, text, controller } = setup();
+    controller.offer("input-assist-us", 1, "TEH", " ", [{ term: "the" }, { term: "ten" }]);
+
+    // The candidate window shows the cased forms.
+    expect(ui.setCandidates).toHaveBeenCalledWith(1, [
+      { id: 0, candidate: "THE", label: "1" },
+      { id: 1, candidate: "TEN", label: "2" },
+    ]);
+
+    const applied = await controller.select(0);
+    expect(applied).toEqual({ original: "TEH", replacement: "THE" });
+    expect(text.commitText).toHaveBeenCalledWith(1, "THE ");
+  });
+
   it("reports the candidate count (for number-key selection bounds)", () => {
     const { controller } = setup();
     expect(controller.pendingCount()).toBe(0);
