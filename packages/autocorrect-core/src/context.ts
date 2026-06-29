@@ -5,8 +5,8 @@
  * dominating the rest of the score.
  */
 export interface ContextModel {
-  /** Score a candidate given the preceding words (most recent last). */
-  score(previousWords: readonly string[], candidate: string): number;
+  /** Score a candidate given nearby words (preceding words are most recent last). */
+  score(previousWords: readonly string[], candidate: string, nextWord?: string): number;
 }
 
 const MAX_CONTEXT_BONUS = 1.5;
@@ -32,25 +32,32 @@ export function createNgramContext(tables: {
   const trigrams = toMap(tables.trigrams ?? {});
 
   return {
-    score(previousWords, candidate) {
+    score(previousWords, candidate, nextWord) {
       const words = previousWords.map((word) => word.toLowerCase());
       const candidateWord = candidate.toLowerCase();
       const w1 = words[words.length - 1];
       const w2 = words[words.length - 2];
 
+      let leftScore = 0;
       if (w2 !== undefined && w1 !== undefined) {
         const trigram = trigrams.get(`${w2} ${w1} ${candidateWord}`) ?? 0;
         if (trigram > 0) {
-          return boundedLog(trigram, NGRAM_WEIGHT);
+          leftScore = boundedLog(trigram, NGRAM_WEIGHT);
         }
       }
-      if (w1 !== undefined) {
+      if (leftScore === 0 && w1 !== undefined) {
         const bigram = bigrams.get(`${w1} ${candidateWord}`) ?? 0;
         if (bigram > 0) {
-          return boundedLog(bigram, NGRAM_WEIGHT) * BIGRAM_BACKOFF;
+          leftScore = boundedLog(bigram, NGRAM_WEIGHT) * BIGRAM_BACKOFF;
         }
       }
-      return 0;
+      const rightCount = nextWord
+        ? (bigrams.get(`${candidateWord} ${nextWord.toLowerCase()}`) ?? 0)
+        : 0;
+      const rightScore = boundedLog(rightCount, NGRAM_WEIGHT) * BIGRAM_BACKOFF;
+      // Keep context bounded: evidence on both sides should disambiguate, not
+      // double the maximum language-model influence.
+      return Math.max(leftScore, rightScore);
     },
   };
 }

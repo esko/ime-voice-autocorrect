@@ -65,6 +65,9 @@ inspect) and the Network tab.
 - [ ] type `in teh ` → `in the `
 - [ ] type `i went hpme ` → `… home ` (dictionary + context together)
 - [ ] A correction that depends on context only fires once the corpus is loaded.
+- [ ] In existing text ending with `food`, place the caret before `food`, type
+      `czt ` → the candidate window offers `cat` first; the existing right-hand
+      word helps rerank the correction.
 
 ## 5. Real-word / confusion (should *suggest*, not silently replace)
 

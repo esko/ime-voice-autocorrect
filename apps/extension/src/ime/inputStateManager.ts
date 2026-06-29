@@ -18,12 +18,14 @@ export class InputStateManager {
   private activeContext: chrome.input.ime.InputContext | null = null;
   private currentBuffer: string = "";
   private previousWords: string[] = [];
+  private nextWord: string | undefined;
   private correctionUndo: CorrectionUndo | null = null;
 
   onFocus(context: chrome.input.ime.InputContext): void {
     this.activeContext = context;
     this.currentBuffer = "";
     this.previousWords = [];
+    this.nextWord = undefined;
     this.correctionUndo = null;
   }
 
@@ -32,6 +34,7 @@ export class InputStateManager {
       this.activeContext = null;
       this.currentBuffer = "";
       this.previousWords = [];
+      this.nextWord = undefined;
       this.correctionUndo = null;
     }
   }
@@ -51,10 +54,16 @@ export class InputStateManager {
     const words = textBeforeCursor.split(/\s+/).filter(Boolean);
     const beforeToken = lastWordMatch ? words.slice(0, -1) : words;
     this.previousWords = beforeToken.slice(-2);
+    const textAfterCursor = info.text.slice(info.focus);
+    this.nextWord = /^[^A-Za-z']*([A-Za-z']+)/.exec(textAfterCursor)?.[1];
   }
 
   getPreviousWords(): readonly string[] {
     return this.previousWords;
+  }
+
+  getNextWord(): string | undefined {
+    return this.nextWord;
   }
 
   onKeyEvent(event: KeyboardEventLike): InputStateAction[] {
@@ -76,6 +85,7 @@ export class InputStateManager {
       event.key === "ArrowDown"
     ) {
       this.currentBuffer = "";
+      this.nextWord = undefined;
       this.correctionUndo = null;
       return [{ type: "pass_through" }];
     }

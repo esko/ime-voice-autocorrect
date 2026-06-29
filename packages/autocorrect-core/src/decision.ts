@@ -64,6 +64,8 @@ export interface DecideOptions {
   context?: ContextModel;
   /** Words typed before this token (most recent last), for context scoring. */
   previousWords?: readonly string[];
+  /** First word after the caret when editing before existing text. */
+  nextWord?: string;
   /** Real-word confusion sets (form/from, their/there, …). */
   confusion?: ConfusionSets;
   /** Curated common-misspelling map applied with high confidence. */
@@ -103,11 +105,13 @@ function confusionDecision(
   }
 
   const previousWords = options.previousWords ?? [];
-  const originalContext = options.context?.score(previousWords, normalized) ?? 0;
+  const originalContext =
+    options.context?.score(previousWords, normalized, options.nextWord) ?? 0;
 
   const ranked = alternatives
     .map((alt) => {
-      const advantage = (options.context?.score(previousWords, alt) ?? 0) - originalContext;
+      const advantage =
+        (options.context?.score(previousWords, alt, options.nextWord) ?? 0) - originalContext;
       const learning = options.model?.score(normalized, alt) ?? 0;
       return { term: alt, advantage, totalScore: advantage + learning };
     })
@@ -192,7 +196,7 @@ export function decideCorrection(
   }): number =>
     scoreCandidate(token, candidate) +
     (options.model?.score(token, candidate.term) ?? 0) +
-    (options.context?.score(previousWords, candidate.term) ?? 0);
+    (options.context?.score(previousWords, candidate.term, options.nextWord) ?? 0);
 
   const ranked: RankedCandidate[] = index
     .lookup(normalized)

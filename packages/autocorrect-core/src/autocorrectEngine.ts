@@ -12,6 +12,7 @@ import { SymSpellIndex } from "./symspell.js";
 /** Per-call context for a decision (e.g. preceding words for reranking). */
 export interface DecideContext {
   previousWords?: readonly string[];
+  nextWord?: string;
 }
 
 export type CorrectionResult =
@@ -88,6 +89,7 @@ export function createAutocorrectEngine(
       return decideCorrection(token, index, {
         ...baseOptions,
         previousWords: decideContext?.previousWords,
+        nextWord: decideContext?.nextWord,
       });
     },
     correctToken(token) {

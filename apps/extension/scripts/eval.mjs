@@ -63,6 +63,7 @@ const cases = [
   [[], "becuse", "because (needs real dict)"],
   [[], "langauge", "language (needs real dict)"],
   [["i", "went"], "hpme", "home (dict + context)"],
+  [[], "czt", "suggest cat (right context before existing word)", "food"],
   [[], "wprf", "word (two neighbour keys)"],
   [[], "jwtboard", "keyboard (three neighbour keys)"],
   [[], "ekbyaord", "keyboard (three transpositions)"],
@@ -92,8 +93,8 @@ function show(decision) {
 
 console.log(`${"context".padEnd(12)}${"typed".padEnd(14)}${"result".padEnd(26)}expected`);
 console.log("-".repeat(72));
-for (const [prev, word, expected] of cases) {
-  const decision = engine.decide(word, { previousWords: prev });
-  const ctx = prev.length ? prev.join(" ") : "—";
+for (const [prev, word, expected, nextWord] of cases) {
+  const decision = engine.decide(word, { previousWords: prev, nextWord });
+  const ctx = [prev.join(" "), nextWord ? `_ ${nextWord}` : ""].filter(Boolean).join(" ") || "—";
   console.log(`${ctx.padEnd(12)}${word.padEnd(14)}${show(decision).padEnd(26)}${expected}`);
 }

@@ -61,8 +61,10 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    upgrade:** subs2vec's subtitle-based English trigram counts (larger, closer to
    real typing) — its host (`archive.mpi.nl`) blocks automated downloads, so
    download the English OpenSubtitles "trigram counts" file by hand and run
-   `node scripts/build-ngrams.mjs path/to/that-file`. Next: right-context (next
-   word) when surrounding text provides it, or a KenLM-style WASM model.
+   `node scripts/build-ngrams.mjs path/to/that-file`. Right-context is now wired:
+   when surrounding text exposes a word after the caret, its candidate→next-word
+   bigram participates in the same bounded score. A KenLM-style WASM model is a
+   possible future replacement for the table-backed scorer.
 
 2. **Confusion-set real-word correction (Level 4).** ✅ A curated confusion
    table (`createCommonConfusionSets`) is consulted only when the original is a

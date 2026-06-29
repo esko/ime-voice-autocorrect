@@ -85,6 +85,18 @@ describe("InputStateManager", () => {
     expect(manager.getPreviousWords()).toEqual([]);
   });
 
+  it("tracks the next word when the caret is before existing text", () => {
+    manager.onFocus(createContext(1));
+    manager.onSurroundingTextChanged(1, {
+      text: "i wrote teh answer",
+      focus: 11,
+      anchor: 11,
+    });
+
+    expect(manager.getPreviousToken()?.text).toBe("teh");
+    expect(manager.getNextWord()).toBe("answer");
+  });
+
   it("password fields disable autocorrect", () => {
     manager.onFocus(createContext(1, "password"));
     expect(manager.canAutocorrect()).toBe(false);

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHardCorrections, createNgramContext } from "@input-assist/autocorrect-core";
 import { AutocorrectImeAdapter } from "./adapter.js";
 
 describe("AutocorrectImeAdapter", () => {
@@ -59,5 +60,30 @@ describe("AutocorrectImeAdapter", () => {
     adapter.updateWordLists({ personalDictionary: ["teh"] });
     // "teh" is now a kept word, so it is never corrected.
     expect(adapter.evaluate("say teh", " ")?.decision.action).toBe("none");
+  });
+
+  it("passes the next word to context reranking", () => {
+    const adapter = new AutocorrectImeAdapter(
+      {
+        deleteSurroundingText: async () => {},
+        commitText: async () => {},
+      },
+      {
+        dictionary: {
+          maxEditDistance: 2,
+          entries: [
+            { word: "the", frequency: 1_000 },
+            { word: "tea", frequency: 1_000 },
+          ],
+        },
+        context: createNgramContext({ bigrams: { "the answer": 1_000_000 } }),
+        hardCorrections: createHardCorrections({}),
+      },
+    );
+
+    expect(adapter.evaluate("teh", " ", [], "answer")?.decision).toMatchObject({
+      action: "replace",
+      replacement: "the",
+    });
   });
 });

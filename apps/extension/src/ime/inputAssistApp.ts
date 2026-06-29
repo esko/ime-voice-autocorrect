@@ -219,11 +219,12 @@ export function createInputAssistApp(options: InputAssistAppOptions) {
       recordAcceptanceOfPendingCorrection();
       const prior = stateManager.getPreviousToken()?.text ?? "";
       const previousWords = stateManager.getPreviousWords();
+      const nextWord = stateManager.getNextWord();
       stateManager.noteCommittedText(character);
       if (!stateManager.canAutocorrect(correctOptedOutFields)) {
         return false;
       }
-      const evaluation = autocorrect.evaluate(prior, character, previousWords);
+      const evaluation = autocorrect.evaluate(prior, character, previousWords, nextWord);
       if (!evaluation) {
         return false;
       }

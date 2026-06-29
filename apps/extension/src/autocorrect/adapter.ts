@@ -143,6 +143,7 @@ export class AutocorrectImeAdapter {
     textBeforeCursor: string,
     character: string,
     previousWords: readonly string[] = [],
+    nextWord?: string,
   ): { token: string; decision: CorrectionDecision } | null {
     if (!this.enabled || !isWordBoundary(character)) {
       return null;
@@ -151,7 +152,7 @@ export class AutocorrectImeAdapter {
     if (!token) {
       return null;
     }
-    return { token, decision: this.engine.decide(token, { previousWords }) };
+    return { token, decision: this.engine.decide(token, { previousWords, nextWord }) };
   }
 
   /**

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { UserModel } from "@input-assist/autocorrect-core";
+import { createNgramContext, UserModel } from "@input-assist/autocorrect-core";
 import { createInputAssistApp } from "./inputAssistApp.js";
 import { ExtensionSettingsCache } from "../storage/settingsCache.js";
 import { ExtensionImePreferences } from "../storage/imePreferences.js";
@@ -190,5 +190,35 @@ describe("createInputAssistApp", () => {
 
     expect(sendBackspaces).toHaveBeenCalledWith(3);
     expect(commitText).toHaveBeenCalledWith("the ");
+  });
+
+  it("uses surrounding text after the caret to rerank a correction", async () => {
+    const commitText = vi.fn(async () => true);
+    const app = createInputAssistApp({
+      imeAdapter: {
+        getContextId: () => 1,
+        commitText,
+        deleteSurroundingText: vi.fn(async () => true),
+        sendBackspaces: vi.fn(async () => true),
+      },
+    });
+    app.setDictionary({
+      maxEditDistance: 2,
+      entries: [
+        { word: "cat", frequency: 1_000 },
+        { word: "cut", frequency: 1_000 },
+      ],
+    });
+    app.setContext(createNgramContext({ bigrams: { "cat food": 1_000_000 } }));
+    app.onFocus("input-assist", textContext);
+    app.stateManager.onSurroundingTextChanged(1, {
+      text: "czt food",
+      focus: 3,
+      anchor: 3,
+    });
+
+    expect(app.handleCharacter(1, " ")).toBe(true);
+    await flush();
+    expect(commitText).toHaveBeenCalledWith("cat ");
   });
 });
