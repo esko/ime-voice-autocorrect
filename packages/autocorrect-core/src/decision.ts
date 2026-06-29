@@ -5,6 +5,7 @@ import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
 import type { HardCorrections } from "./hardCorrections.js";
 import type { RepRules } from "./repRules.js";
+import type { PhoneticCandidates } from "./phonetic.js";
 import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase, isUncorrectableCase } from "./caseRestore.js";
@@ -33,6 +34,7 @@ export const MIN_MARGIN_OVER_ORIGINAL = 1.5;
 export const MIN_MARGIN_OVER_SECOND = 0.8;
 /** Max edit distance for a validator suggestion used as a coverage fallback. */
 const FALLBACK_MAX_EDIT = 3;
+const PHONETIC_SCORE_BONUS = 3.0;
 
 export function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
@@ -68,6 +70,8 @@ export interface DecideOptions {
   hardCorrections?: HardCorrections;
   /** Hunspell REP rules mined as an extra (phonetic/spelling) candidate source. */
   repRules?: RepRules;
+  /** Double Metaphone candidate source used only when the main index is empty. */
+  phonetic?: PhoneticCandidates;
 }
 
 /**
@@ -207,34 +211,36 @@ export function decideCorrection(
     }));
 
   // Coverage fallback: when SymSpell + the frequency list find nothing, widen the
-  // net with two extra sources scored the same way (so keyboard/context ranking
-  // still applies) — the validator's (Hunspell) own suggestions, and candidates
-  // from the mined REP rules for phonetic/spelling slips SymSpell cannot reach.
-  if (ranked.length === 0) {
-    const seen = new Set<string>();
-    const consider = (raw: string): void => {
-      const term = raw.toLowerCase();
-      if (term === normalized || seen.has(term)) {
-        return;
-      }
-      // The candidate must be a real word; REP output in particular is unchecked.
-      if (!(options.validator?.isValid(term) ?? index.hasExact(term))) {
-        return;
-      }
-      const distance = damerauLevenshtein(normalized, term);
-      if (distance === 0 || distance > FALLBACK_MAX_EDIT) {
-        return;
-      }
-      seen.add(term);
-      const candidate = { term, editDistance: distance, frequency: index.frequencyOf(term) };
-      ranked.push({ ...candidate, totalScore: scoreFor(candidate) });
-    };
+  // net with bounded extra sources scored through the same ranker: Hunspell's
+  // suggestions, mined REP rules, and Double Metaphone dictionary matches.
+  const seen = new Set(ranked.map((candidate) => candidate.term));
+  const consider = (raw: string, scoreBonus = 0): void => {
+    const term = raw.toLowerCase();
+    if (term === normalized || seen.has(term)) {
+      return;
+    }
+    // The candidate must be a real word; REP output in particular is unchecked.
+    if (!(options.validator?.isValid(term) ?? index.hasExact(term))) {
+      return;
+    }
+    const distance = damerauLevenshtein(normalized, term);
+    if (distance === 0 || distance > FALLBACK_MAX_EDIT) {
+      return;
+    }
+    seen.add(term);
+    const candidate = { term, editDistance: distance, frequency: index.frequencyOf(term) };
+    ranked.push({ ...candidate, totalScore: scoreFor(candidate) + scoreBonus });
+  };
 
+  if (ranked.length === 0) {
     for (const suggestion of options.validator?.suggest?.(normalized).slice(0, 5) ?? []) {
       consider(suggestion);
     }
     for (const candidate of options.repRules?.candidates(normalized) ?? []) {
       consider(candidate);
+    }
+    for (const candidate of options.phonetic?.candidates(normalized) ?? []) {
+      consider(candidate, PHONETIC_SCORE_BONUS);
     }
   }
 

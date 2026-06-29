@@ -11,6 +11,8 @@ export { createNgramContext, createCommonContext } from "./context.js";
 export type { ContextModel } from "./context.js";
 export { createConfusionSets, createCommonConfusionSets } from "./confusion.js";
 export type { ConfusionSets } from "./confusion.js";
+export { createPhoneticCandidates } from "./phonetic.js";
+export type { PhoneticCandidates } from "./phonetic.js";
 export { createHardCorrections, createCommonHardCorrections } from "./hardCorrections.js";
 export type { HardCorrections } from "./hardCorrections.js";
 export { parseRepRules, createRepRules, createRepRulesFromAff } from "./repRules.js";
@@ -23,4 +25,3 @@ export { loadDictionaryFromLines, loadDictionaryFromText } from "./dictionaryLoa
 export { extractLastWord, isWordBoundary } from "./tokenizer.js";
 export { restoreCase } from "./caseRestore.js";
 export { formatWordList, parseWordList } from "./wordLists.js";
-

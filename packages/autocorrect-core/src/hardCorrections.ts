@@ -105,6 +105,7 @@ const COMMON_MISSPELLINGS: Record<string, string> = {
   unfortunatly: "unfortunately",
   usefull: "useful",
   wether: "whether",
+  nite: "night",
   // Additional well-established misspellings and common inflections. Every key is
   // a non-word; even if one were a real word, the originalIsValid guard in
   // decideCorrection means it would simply never fire.

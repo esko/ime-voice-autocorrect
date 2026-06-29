@@ -5,6 +5,7 @@ import type { ContextModel } from "./context.js";
 import type { ConfusionSets } from "./confusion.js";
 import type { HardCorrections } from "./hardCorrections.js";
 import type { RepRules } from "./repRules.js";
+import { createPhoneticCandidates, type PhoneticCandidates } from "./phonetic.js";
 import { decideCorrection, type CorrectionDecision } from "./decision.js";
 import { SymSpellIndex } from "./symspell.js";
 
@@ -39,6 +40,7 @@ export interface AutocorrectEngineOptions {
   confusion?: ConfusionSets;
   hardCorrections?: HardCorrections;
   repRules?: RepRules;
+  phonetic?: PhoneticCandidates;
 }
 
 export function createAutocorrectEngine(
@@ -54,6 +56,7 @@ export function createAutocorrectEngine(
     confusion,
     hardCorrections,
     repRules,
+    phonetic = createPhoneticCandidates(dictionary.entries),
   } = options;
 
   let index = SymSpellIndex.build(dictionary.entries, {
@@ -77,6 +80,7 @@ export function createAutocorrectEngine(
     confusion,
     hardCorrections,
     repRules,
+    phonetic,
   };
 
   return {

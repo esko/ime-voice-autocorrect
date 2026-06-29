@@ -70,6 +70,7 @@ const cases = [
   [[], "bokeper", "bookkeeper (three dropped doubles)"],
   [[], "telefone", "telephone (REP f->ph; SymSpell misses it)"],
   [[], "fotographer", "photographer (REP f->ph)"],
+  [[], "nite", "night (curated phonetic spelling)"],
   [[], "wprd", "word/work — ambiguous (short)"],
   [[], "woord", "word/wood — ambiguous (short)"],
   [[], "the", "none — valid word"],

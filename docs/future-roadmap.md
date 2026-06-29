@@ -103,9 +103,14 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
    persistent SymSpell index. Cost tuning against real on-device typing remains
    ongoing rather than a separate implementation gap.
 
-5. **Phonetic candidates (lower priority).** Metaphone/Double Metaphone as an
-   extra candidate source for sound-based slips (`fone→phone`, `nite→night`).
-   Rerank with the same confidence model. Below keyboard distance in priority.
+5. **Phonetic candidates (lower priority).** ✅ A bounded Double Metaphone index
+   supplies up to eight frequency-ranked candidates when the stronger SymSpell
+   pool is empty. Candidates still require dictionary validation, raw edit
+   distance ≤3, and the normal confidence margins. It deliberately does not
+   join a non-empty spelling pool because broad phonetic codes collapse words
+   such as *not*, *note*, and *night* and weaken safer decisions. Common
+   non-word phonetic spellings such as `nite→night` remain in the curated hard
+   map; Hunspell REP rules cover transformations such as `fone→phone`.
 
 ## Mid-term
 

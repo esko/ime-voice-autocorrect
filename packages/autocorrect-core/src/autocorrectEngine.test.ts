@@ -41,6 +41,19 @@ describe("autocorrect on word boundary", () => {
     });
   });
 
+  it("uses phonetic candidates when spelling distance cannot reach night", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "night", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("nite")).toMatchObject({
+      kind: "corrected",
+      corrected: "night",
+    });
+  });
+
   it("prefers keyboard-neighbor typos such as chromr to chrome", () => {
     const engine = createAutocorrectEngine({
       dictionary: createTestDictionary(),
