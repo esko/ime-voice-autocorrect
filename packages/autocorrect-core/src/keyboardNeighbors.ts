@@ -32,6 +32,11 @@ export function areKeyboardNeighbors(a: string, b: string): boolean {
   return NEIGHBORS[a.toLowerCase()]?.includes(b.toLowerCase()) ?? false;
 }
 
+/** QWERTY keys physically adjacent to `key`. */
+export function keyboardNeighbors(key: string): readonly string[] {
+  return NEIGHBORS[key.toLowerCase()] ?? [];
+}
+
 export function keyboardNeighborScore(token: string, candidate: string): number {
   if (token.length !== candidate.length) {
     return 0;

@@ -30,6 +30,19 @@ const INDEL_BASE = 1.0;
 const INDEL_DOUBLED = 0.3;
 const INDEL_NEIGHBOUR = 0.6;
 
+/** Three adjacent-key substitutions cost 3 × 0.4. */
+export const MAX_PLAUSIBLE_THREE_EDIT_COST = 1.2;
+const COST_EPSILON = 1e-9;
+
+export function isPlausibleThreeEditCost(weightedCost: number, wordLength: number): boolean {
+  return wordLength >= 6 && weightedCost <= MAX_PLAUSIBLE_THREE_EDIT_COST + COST_EPSILON;
+}
+
+/** Guard the wider candidate search to long tokens with cheap motor slips. */
+export function isPlausibleThreeEditCandidate(typed: string, candidate: string): boolean {
+  return isPlausibleThreeEditCost(weightedKeyboardDistance(typed, candidate), typed.length);
+}
+
 function substitutionCost(a: string, b: string): number {
   if (a === b) return 0;
   return areKeyboardNeighbors(a, b) ? SUB_NEIGHBOUR : SUB_FAR;

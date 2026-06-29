@@ -1,5 +1,8 @@
 import { areKeyboardNeighbors } from "./keyboardNeighbors.js";
-import { weightedKeyboardDistance } from "./weightedDistance.js";
+import {
+  isPlausibleThreeEditCost,
+  weightedKeyboardDistance,
+} from "./weightedDistance.js";
 
 /** A candidate that has been scored by the ranking layer. */
 export interface RankedCandidate {
@@ -43,6 +46,9 @@ export function editDistanceScore(
     if (weightedDistance <= 1.0) return 1.0; // both edits keyboard-plausible
     if (weightedDistance <= 1.6) return 0.4; // mixed plausibility
     return -0.6; // two implausible edits — likely a coincidence, not a typo
+  }
+  if (editDistance === 3 && isPlausibleThreeEditCost(weightedDistance, wordLength)) {
+    return 0.7;
   }
   return -2.0;
 }
@@ -155,14 +161,19 @@ export function caseShapeScore(original: string): number {
 
 /** Weighted total used to rank candidates against each other. */
 export function scoreCandidate(original: string, candidate: ScorableCandidate): number {
+  const weightedDistance = weightedKeyboardDistance(original, candidate.term);
+  // A raw distance-3 alignment can make several transpositions look like far
+  // substitutions. Once the weighted metric proves the whole path is cheap,
+  // score it as three plausible motor edits instead of applying that penalty.
+  const motorScore =
+    candidate.editDistance === 3 &&
+    isPlausibleThreeEditCost(weightedDistance, original.length)
+      ? 3.0
+      : keyboardTypoScore(original, candidate.term);
   return (
     frequencyScore(candidate.frequency) +
-    editDistanceScore(
-      candidate.editDistance,
-      weightedKeyboardDistance(original, candidate.term),
-      original.length,
-    ) +
-    keyboardTypoScore(original, candidate.term) +
+    editDistanceScore(candidate.editDistance, weightedDistance, original.length) +
+    motorScore +
     caseShapeScore(original)
   );
 }

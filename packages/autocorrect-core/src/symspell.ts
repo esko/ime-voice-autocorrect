@@ -1,6 +1,11 @@
 import type { DictionaryEntry } from "./dictionary.js";
 import { damerauLevenshtein as editDistance } from "./editDistance.js";
-import { keyboardNeighborScore } from "./keyboardNeighbors.js";
+import {
+  areKeyboardNeighbors,
+  keyboardNeighbors,
+  keyboardNeighborScore,
+} from "./keyboardNeighbors.js";
+import { isPlausibleThreeEditCandidate } from "./weightedDistance.js";
 
 export interface SymSpellOptions {
   maxEditDistance: number;
@@ -101,19 +106,67 @@ export class SymSpellIndex {
     return this.exactMap.get(token)?.frequency ?? 0;
   }
 
+  private collectCandidateTerms(token: string, target: Set<string>): void {
+    for (const del of getDeletes(token, this.maxEditDistance)) {
+      const bucket = this.deletionIndex.get(del);
+      if (bucket) {
+        for (const term of bucket) {
+          target.add(term);
+        }
+      }
+    }
+  }
+
   lookup(token: string): SymSpellCandidate[] {
     if (this.hasExact(token)) {
       return [];
     }
 
-    const tokenDeletes = getDeletes(token, this.maxEditDistance);
     const candidateTerms = new Set<string>();
+    this.collectCandidateTerms(token, candidateTerms);
 
-    for (const del of tokenDeletes) {
-      const bucket = this.deletionIndex.get(del);
-      if (bucket) {
-        for (const term of bucket) {
-          candidateTerms.add(term);
+    // One cheap keyboard substitution can bring a raw-distance-3 typo within
+    // reach of the existing distance-2 deletion index. This avoids tripling the
+    // precomputed index while still finding long, all-plausible motor slips.
+    if (this.maxEditDistance === 2 && token.length >= 6) {
+      for (let index = 0; index < token.length; index++) {
+        for (const neighbor of keyboardNeighbors(token[index] ?? "")) {
+          const variant = token.slice(0, index) + neighbor + token.slice(index + 1);
+          this.collectCandidateTerms(variant, candidateTerms);
+        }
+      }
+      for (let index = 0; index < token.length - 1; index++) {
+        const variant =
+          token.slice(0, index) +
+          token[index + 1] +
+          token[index] +
+          token.slice(index + 2);
+        this.collectCandidateTerms(variant, candidateTerms);
+      }
+      for (let index = 0; index < token.length; index++) {
+        const current = token[index];
+        const previous = token[index - 1];
+        const next = token[index + 1];
+        if (
+          current !== undefined &&
+          (current === previous ||
+            current === next ||
+            (previous !== undefined && areKeyboardNeighbors(current, previous)) ||
+            (next !== undefined && areKeyboardNeighbors(current, next)))
+        ) {
+          this.collectCandidateTerms(
+            token.slice(0, index) + token.slice(index + 1),
+            candidateTerms,
+          );
+        }
+      }
+      for (let index = 0; index < token.length; index++) {
+        const current = token[index];
+        if (current !== undefined) {
+          this.collectCandidateTerms(
+            token.slice(0, index) + current + token.slice(index),
+            candidateTerms,
+          );
         }
       }
     }
@@ -122,7 +175,10 @@ export class SymSpellIndex {
 
     for (const term of candidateTerms) {
       const dist = editDistance(token, term);
-      if (dist <= this.maxEditDistance) {
+      if (
+        dist <= this.maxEditDistance ||
+        (dist === 3 && isPlausibleThreeEditCandidate(token, term))
+      ) {
         const exact = this.exactMap.get(term);
         if (exact) {
           candidates.push({ ...exact, editDistance: dist });

@@ -20,7 +20,8 @@ describe("editDistanceScore", () => {
     expect(editDistanceScore(1, 1, 4)).toBeGreaterThan(editDistanceScore(2, 0.8, 6));
     expect(editDistanceScore(2, 0.8, 6)).toBeGreaterThan(0);
     expect(editDistanceScore(2, 0.8, 3)).toBeLessThan(0); // distance 2 on a short word
-    expect(editDistanceScore(3, 1.2, 9)).toBeLessThan(0);
+    expect(editDistanceScore(3, 1.2, 9)).toBeGreaterThan(0);
+    expect(editDistanceScore(3, 3.0, 9)).toBeLessThan(0);
   });
 
   it("rewards keyboard-plausible distance-2 slips and penalises coincidental ones", () => {

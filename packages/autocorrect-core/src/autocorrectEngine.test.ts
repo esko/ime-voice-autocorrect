@@ -52,6 +52,71 @@ describe("autocorrect on word boundary", () => {
     });
   });
 
+  it("reaches a long word with three adjacent-key substitutions", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "keyboard", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("jwtboard")).toMatchObject({
+      kind: "corrected",
+      corrected: "keyboard",
+    });
+  });
+
+  it("does not widen three-edit correction to unrelated substitutions", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "keyboard", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("xyzboard")).toEqual({
+      kind: "unchanged",
+      original: "xyzboard",
+    });
+  });
+
+  it("reaches a long word with three adjacent transpositions", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "keyboard", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("ekbyaord")).toMatchObject({
+      kind: "corrected",
+      corrected: "keyboard",
+    });
+  });
+
+  it("reaches a long word after three bounced keys", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "keyboard", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("kkeeyyboard")).toMatchObject({
+      kind: "corrected",
+      corrected: "keyboard",
+    });
+  });
+
+  it("reaches a long word after three dropped double letters", () => {
+    const engine = createAutocorrectEngine({
+      dictionary: createTestDictionary({
+        entries: [{ word: "bookkeeper", frequency: 10_000 }],
+      }),
+    });
+
+    expect(engine.correctToken("bokeper")).toMatchObject({
+      kind: "corrected",
+      corrected: "bookkeeper",
+    });
+  });
+
   it("ignores Finnish tokens containing å, ä, or ö", () => {
     const engine = createAutocorrectEngine({
       dictionary: createTestDictionary(),

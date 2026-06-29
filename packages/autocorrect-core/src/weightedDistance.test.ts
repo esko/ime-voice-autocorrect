@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { weightedKeyboardDistance } from "./weightedDistance.js";
+import {
+  isPlausibleThreeEditCandidate,
+  weightedKeyboardDistance,
+} from "./weightedDistance.js";
 
 describe("weightedKeyboardDistance", () => {
   it("is zero for identical words and case-insensitive", () => {
@@ -46,5 +49,9 @@ describe("weightedKeyboardDistance", () => {
     expect(weightedKeyboardDistance("cot", "cat")).toBeGreaterThan(
       weightedKeyboardDistance("xat", "cat"), // x is adjacent to c
     );
+  });
+
+  it("accepts three adjacent-key substitutions despite floating-point rounding", () => {
+    expect(isPlausibleThreeEditCandidate("jwtboard", "keyboard")).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import type { RepRules } from "./repRules.js";
 import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
 import { restoreCase, isUncorrectableCase } from "./caseRestore.js";
+import { isPlausibleThreeEditCandidate } from "./weightedDistance.js";
 import {
   maxEditDistanceForLength,
   scoreCandidate,
@@ -191,7 +192,12 @@ export function decideCorrection(
 
   const ranked: RankedCandidate[] = index
     .lookup(normalized)
-    .filter((candidate) => candidate.editDistance <= cap)
+    .filter(
+      (candidate) =>
+        candidate.editDistance <= cap ||
+        (candidate.editDistance === 3 &&
+          isPlausibleThreeEditCandidate(normalized, candidate.term)),
+    )
     .filter((candidate) => options.validator?.isValid(candidate.term) ?? true)
     .map((candidate) => ({
       term: candidate.term,
