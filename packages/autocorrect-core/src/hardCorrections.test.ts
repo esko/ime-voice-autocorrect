@@ -63,9 +63,16 @@ describe("decideCorrection with hard corrections", () => {
       action: "replace",
       replacement: "THE",
     });
+    // A stray Shift on an early letter reads as "capitalise the word".
     expect(decideCorrection("tEh", index, { hardCorrections: hard })).toMatchObject({
       action: "replace",
-      replacement: "the",
+      replacement: "The",
     });
+  });
+
+  it("leaves tokens with an intentional-looking internal capital uncorrected", () => {
+    const hard = createHardCorrections({ recieve: "receive" });
+    // Capital on the 4th letter is not an early-Shift slip -> don't touch it.
+    expect(decideCorrection("recIeve", index, { hardCorrections: hard }).action).toBe("none");
   });
 });

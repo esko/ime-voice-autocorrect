@@ -7,7 +7,7 @@ import type { HardCorrections } from "./hardCorrections.js";
 import type { RepRules } from "./repRules.js";
 import { damerauLevenshtein } from "./editDistance.js";
 import { shouldIgnoreToken } from "./ignoreRules.js";
-import { restoreCase } from "./caseRestore.js";
+import { restoreCase, isUncorrectableCase } from "./caseRestore.js";
 import {
   maxEditDistanceForLength,
   scoreCandidate,
@@ -147,6 +147,12 @@ export function decideCorrection(
     shouldIgnoreToken(token) ||
     (options.model?.isAcceptedWord(normalized) ?? false)
   ) {
+    return { action: "none" };
+  }
+
+  // A stray internal capital that does not read as an accidental Shift on an
+  // early letter (e.g. "tHEy", "McX") looks intentional — leave it untouched.
+  if (isUncorrectableCase(token)) {
     return { action: "none" };
   }
 
