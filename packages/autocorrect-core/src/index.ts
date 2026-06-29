@@ -6,6 +6,7 @@ export { UserModel, emptyLearningData } from "./learning.js";
 export type { UserLearningData } from "./learning.js";
 export type { Validator } from "./validator.js";
 export { damerauLevenshtein } from "./editDistance.js";
+export { weightedKeyboardDistance } from "./weightedDistance.js";
 export { createNgramContext, createCommonContext } from "./context.js";
 export type { ContextModel } from "./context.js";
 export { createConfusionSets, createCommonConfusionSets } from "./confusion.js";

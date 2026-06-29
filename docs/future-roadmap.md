@@ -13,7 +13,7 @@ only off the critical path (hotkey / sentence end / selected text).
 | Level | Capability | Status |
 |---|---|---|
 | 1 | SymSpell candidate generation + nspell/Hunspell validation | ✅ done |
-| 2 | Keyboard-aware error model | ◑ as a **scoring** feature (`keyboardTypoScore`: neighbour/transpose/doubled/inserted), not yet a weighted edit-distance in candidate generation |
+| 2 | Keyboard-aware error model | ◑ two scoring features now: `keyboardTypoScore` (per-op neighbour/transpose/doubled/inserted) **and** a true keyboard-weighted edit distance (`weightedKeyboardDistance`) that grades each candidate's distance-2 plausibility; not yet folded into candidate *generation* (SymSpell still uses raw distance) |
 | 3 | N-gram language-model reranking | ✅ trigram→bigram backoff reranker; full ~242k-pair English bigram corpus bundled and loaded at start (`loadEnglishContext`) |
 | 4 | Confusion-set / real-word correction | ◑ context-gated, suggest-only-until-learned (`createCommonConfusionSets`); curated seed set, needs a larger n-gram corpus to bite |
 | 5 | Personal learning model | ✅ done (accept/reject pairs, accepted words, persisted) |
@@ -83,12 +83,17 @@ Ordered by value-for-effort. All are offline, explainable, and engine-local.
      misspellings corrected with high confidence, respecting user rejections and
      unsafe fields.
 
-4. **True weighted edit distance (Level 2 refinement).** Today keyboard
-   plausibility is a post-hoc score; optionally fold it into the distance metric
-   itself (adjacent-key sub ≈ 0.35, transpose ≈ 0.25, doubled-char delete ≈
-   0.25, far sub ≈ 1.0). Highest-value for the motor-difficulty profile — it
-   models real finger errors, not dictionary distance. See
-   [[user-motor-difficulty-typing]].
+4. **True weighted edit distance (Level 2 refinement).** ◑ In: `weightedKeyboardDistance`
+   is a keyboard-cost Damerau-Levenshtein (neighbour sub 0.4, transpose 0.3,
+   doubled/brushed indel 0.3–0.6, far sub/indel 1.0). It grades distance-2
+   corrections in `editDistanceScore` — a two-adjacent-key slip (weighted ≈ 0.8)
+   is rewarded, two unrelated edits (weighted ≈ 2.0) are penalised — so motor
+   typos correct readily while coincidental distance-2 collisions stay safe.
+   Highest-value for the motor-difficulty profile; it models real finger errors,
+   not dictionary distance. See [[user-motor-difficulty-typing]]. **Remaining:**
+   fold it into candidate *generation* so 3-edit all-plausible slips become
+   reachable (needs a SymSpell index redesign — raw distance still caps reach at
+   2), and tune the cost constants against real on-device typing.
 
 5. **Phonetic candidates (lower priority).** Metaphone/Double Metaphone as an
    extra candidate source for sound-based slips (`fone→phone`, `nite→night`).

@@ -16,10 +16,19 @@ describe("frequencyScore", () => {
 
 describe("editDistanceScore", () => {
   it("prefers small edits and punishes large ones", () => {
-    expect(editDistanceScore(1, 4)).toBeGreaterThan(editDistanceScore(2, 6));
-    expect(editDistanceScore(2, 6)).toBeGreaterThan(0);
-    expect(editDistanceScore(2, 3)).toBeLessThan(0); // distance 2 on a short word
-    expect(editDistanceScore(3, 9)).toBeLessThan(0);
+    // distance 1 beats a plausible distance 2; both positive.
+    expect(editDistanceScore(1, 1, 4)).toBeGreaterThan(editDistanceScore(2, 0.8, 6));
+    expect(editDistanceScore(2, 0.8, 6)).toBeGreaterThan(0);
+    expect(editDistanceScore(2, 0.8, 3)).toBeLessThan(0); // distance 2 on a short word
+    expect(editDistanceScore(3, 1.2, 9)).toBeLessThan(0);
+  });
+
+  it("rewards keyboard-plausible distance-2 slips and penalises coincidental ones", () => {
+    // Two adjacent-key slips (low weighted cost) are treated as a real typo...
+    expect(editDistanceScore(2, 0.8, 6)).toBeGreaterThan(0);
+    // ...while two unrelated edits (high weighted cost) are penalised.
+    expect(editDistanceScore(2, 2.0, 6)).toBeLessThan(0);
+    expect(editDistanceScore(2, 0.8, 6)).toBeGreaterThan(editDistanceScore(2, 2.0, 6));
   });
 });
 

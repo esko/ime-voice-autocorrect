@@ -17,8 +17,8 @@ pnpm build
       files makes the service worker fail to fetch).
 - [ ] `chrome://extensions` shows no error on the card ("Service worker
       (inactive)" is normal).
-- [ ] ChromeOS input settings list **Input Assist US** and **Input Assist Finnish**.
-- [ ] Selecting one shows the IME menu (tray) with an **Autocorrect** toggle and
+- [ ] ChromeOS input settings list a single **Input Assist** input method.
+- [ ] Selecting it shows the IME menu (tray) with an **Autocorrect** toggle and
       no "engine is not active" error in the service-worker console.
 
 ## 1. Data loads (the engine upgrades a few seconds after first use)
@@ -38,8 +38,7 @@ inspect) and the Network tab.
 
 - [ ] type a full sentence normally → every character appears, nothing is
       swallowed or doubled.
-- [ ] **US** layout: letters, numbers, `! ? . , ; : ' " ( )` all type correctly.
-- [ ] **Finnish** layout: `å ä ö` type correctly; AltGr characters work.
+- [ ] Letters, numbers, `! ? . , ; : ' " ( )` all type correctly (US layout).
 - [ ] Backspace, arrows, Enter, Tab behave normally.
 - [ ] Right Alt does nothing unusual (it is no longer a dictation key).
 

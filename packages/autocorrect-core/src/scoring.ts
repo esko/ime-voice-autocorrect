@@ -1,4 +1,5 @@
 import { areKeyboardNeighbors } from "./keyboardNeighbors.js";
+import { weightedKeyboardDistance } from "./weightedDistance.js";
 
 /** A candidate that has been scored by the ranking layer. */
 export interface RankedCandidate {
@@ -21,14 +22,28 @@ export function frequencyScore(frequency: number): number {
 }
 
 /**
- * Prefer small edits. Distance 2 is allowed (not punished) on words of length
- * 4+ because a single motor slip often produces two neighbouring/extra keys at
- * once; keyboard plausibility (below) is what actually gates such corrections.
+ * Prefer small edits, but judge a distance-2 edit by *how* it was mistyped.
+ *
+ * Distance 2 on a length-4+ word is allowed because a single motor slip often
+ * produces two neighbouring/extra keys at once. The keyboard-weighted distance
+ * separates the plausible case (two adjacent-key/doubled slips → weighted ≈ 0.8)
+ * from a coincidental one (two unrelated keys → weighted ≈ 2.0): the former is
+ * rewarded so motor typos correct readily, the latter is penalised so random
+ * distance-2 collisions are *less* likely to auto-replace. `weightedDistance` is
+ * the keyboard cost of turning the typed token into this candidate.
  */
-export function editDistanceScore(editDistance: number, wordLength: number): number {
+export function editDistanceScore(
+  editDistance: number,
+  weightedDistance: number,
+  wordLength: number,
+): number {
   if (editDistance === 0) return 2.0;
   if (editDistance === 1) return 1.5;
-  if (editDistance === 2 && wordLength >= 4) return 0.6;
+  if (editDistance === 2 && wordLength >= 4) {
+    if (weightedDistance <= 1.0) return 1.0; // both edits keyboard-plausible
+    if (weightedDistance <= 1.6) return 0.4; // mixed plausibility
+    return -0.6; // two implausible edits — likely a coincidence, not a typo
+  }
   return -2.0;
 }
 
@@ -142,7 +157,11 @@ export function caseShapeScore(original: string): number {
 export function scoreCandidate(original: string, candidate: ScorableCandidate): number {
   return (
     frequencyScore(candidate.frequency) +
-    editDistanceScore(candidate.editDistance, original.length) +
+    editDistanceScore(
+      candidate.editDistance,
+      weightedKeyboardDistance(original, candidate.term),
+      original.length,
+    ) +
     keyboardTypoScore(original, candidate.term) +
     caseShapeScore(original)
   );
