@@ -59,4 +59,28 @@ describe("real-word correction via confusion sets", () => {
   it("leaves the valid word alone without supporting context", () => {
     expect(decideCorrection("form", index, { confusion }).action).toBe("none");
   });
+
+  it("offers principal when context indicates a person rather than a rule", () => {
+    const principalIndex = SymSpellIndex.build(
+      [
+        { word: "principal", frequency: 2_000 },
+        { word: "principle", frequency: 2_000 },
+      ],
+      { maxEditDistance: 2 },
+    );
+    const schoolContext = createNgramContext({
+      bigrams: { "school principal": 246_079 },
+    });
+
+    const decision = decideCorrection("principle", principalIndex, {
+      confusion,
+      context: schoolContext,
+      previousWords: ["school"],
+    });
+
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("principal");
+    }
+  });
 });

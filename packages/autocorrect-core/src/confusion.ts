@@ -2,8 +2,7 @@
  * Confusion sets: groups of real words commonly swapped for one another
  * (form/from, their/there, …). Both words are valid, so SymSpell + Hunspell
  * never flag them — only context (and user learning) can. Real-word swaps are
- * suggest-only by default and auto-applied only after the user has accepted the
- * specific swap.
+ * always suggest-only, even after the user has accepted a specific swap.
  */
 export interface ConfusionSets {
   /** Other words commonly confused with `word`. */
@@ -40,6 +39,7 @@ const COMMON_CONFUSIONS: readonly (readonly string[])[] = [
   ["affect", "effect"],
   ["accept", "except"],
   ["advice", "advise"],
+  ["principal", "principle"],
 ];
 
 export function createCommonConfusionSets(): ConfusionSets {
