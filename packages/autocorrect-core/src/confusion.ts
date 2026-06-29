@@ -40,6 +40,7 @@ const COMMON_CONFUSIONS: readonly (readonly string[])[] = [
   ["accept", "except"],
   ["advice", "advise"],
   ["principal", "principle"],
+  ["weather", "whether"],
 ];
 
 export function createCommonConfusionSets(): ConfusionSets {

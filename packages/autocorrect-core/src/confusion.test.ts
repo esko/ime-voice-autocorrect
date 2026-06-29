@@ -83,4 +83,28 @@ describe("real-word correction via confusion sets", () => {
       expect(decision.candidates[0]?.term).toBe("principal");
     }
   });
+
+  it("offers whether when context indicates a choice rather than climate", () => {
+    const whetherIndex = SymSpellIndex.build(
+      [
+        { word: "weather", frequency: 2_000 },
+        { word: "whether", frequency: 2_000 },
+      ],
+      { maxEditDistance: 2 },
+    );
+    const choiceContext = createNgramContext({
+      bigrams: { "know whether": 1_708_957 },
+    });
+
+    const decision = decideCorrection("weather", whetherIndex, {
+      confusion,
+      context: choiceContext,
+      previousWords: ["know"],
+    });
+
+    expect(decision.action).toBe("suggest");
+    if (decision.action === "suggest") {
+      expect(decision.candidates[0]?.term).toBe("whether");
+    }
+  });
 });
